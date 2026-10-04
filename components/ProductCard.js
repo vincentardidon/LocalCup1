@@ -1,10 +1,16 @@
 ﻿import { Text, Image, Pressable, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
 import { colors } from "../constants/colors";
 
-// Reusable card: product picture, name and price
+// Reusable card. Tapping it opens the Customized page and sends the product id.
 export default function ProductCard({ product }) {
+  const router = useRouter();
+
   return (
-    <Pressable style={styles.card}>
+    <Pressable
+      style={styles.card}
+      onPress={() => router.push({ pathname: "/customized", params: { id: product.id } })}
+    >
       <Image source={product.image} style={styles.image} />
       <Text style={styles.name} numberOfLines={1}>{product.name}</Text>
       <Text style={styles.price}>{"\u20B1"}{product.price}</Text>

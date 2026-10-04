@@ -1,10 +1,10 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft } from "lucide-react-native";
-import { useRef } from "react";
-import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
+﻿import { useRef } from "react";
+import { View, Text, Image, Pressable, Animated, Alert, StyleSheet } from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { ArrowLeft, ShoppingCart } from "lucide-react-native";
 import CategorySection from "../components/CategorySection";
+import { coffeeBased, nonCoffeeBased, soda, pastries, meals } from "../data/products";
 import { colors } from "../constants/colors";
-import { coffeeBased, meals, nonCoffeeBased, pastries, soda } from "../data/products";
 
 export default function Menu() {
   const router = useRouter();
@@ -43,11 +43,18 @@ export default function Menu() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        {/* Back arrow + Menu title */}
-        <Pressable style={styles.backRow} onPress={() => router.back()}>
-          <ArrowLeft size={26} color={colors.darkPink} />
-          <Text style={styles.menuTitle}>Menu</Text>
-        </Pressable>
+        {/* Back arrow + Menu title on the left, View Cart on the right */}
+        <View style={styles.topRow}>
+          <Pressable style={styles.backRow} onPress={() => router.back()}>
+            <ArrowLeft size={26} color={colors.darkPink} />
+            <Text style={styles.menuTitle}>Menu</Text>
+          </Pressable>
+
+          <Pressable style={styles.cartButton} onPress={() => Alert.alert("Cart page coming soon.")}>
+            <ShoppingCart size={18} color={colors.darkPink} />
+            <Text style={styles.cartText}>View Cart</Text>
+          </Pressable>
+        </View>
         {name ? <Text style={styles.cafeName}>{name}</Text> : null}
 
         <CategorySection title="Coffee Based" items={coffeeBased} />
@@ -66,7 +73,20 @@ const styles = StyleSheet.create({
   logo: { width: 48, height: 48 },
   title: { fontSize: 24, fontWeight: "bold", color: colors.darkPink },
   content: { padding: 18, paddingBottom: 50 },
-  backRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 },
+  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
+  backRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   menuTitle: { fontSize: 24, fontWeight: "bold", color: colors.text },
+  cartButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.beige,
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  cartText: { color: colors.darkPink, fontWeight: "600" },
   cafeName: { color: colors.rose, fontSize: 14, marginBottom: 16, marginLeft: 36 },
 });

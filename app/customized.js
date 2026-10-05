@@ -86,6 +86,9 @@ export default function Customized() {
   });
 
   // Save the customized item into the "cart" list in AsyncStorage
+  // Every option group must have a selected value
+  const isComplete = () => sections.every((section) => selected[section.title]);
+
   const saveToCart = async () => {
     const item = {
       cartId: Date.now().toString(),
@@ -105,6 +108,10 @@ export default function Customized() {
 
   // Add to Cart: save, then go back to the Menu so the customer can keep ordering
   const handleAddToCart = async () => {
+    if (!isComplete()) {
+      Alert.alert("Please complete your customization.");
+      return;
+    }
     await saveToCart();
     Alert.alert("Added to cart!", "You can keep ordering.", [
       { text: "OK", onPress: () => router.back() },
@@ -113,6 +120,10 @@ export default function Customized() {
 
   // Check Out: save this item too (so the cart is never empty), then open the Coffee Cart
   const handleCheckOut = async () => {
+    if (!isComplete()) {
+      Alert.alert("Please complete your customization.");
+      return;
+    }
     await saveToCart();
     router.push("/coffee-cart");
   };
@@ -243,3 +254,4 @@ const styles = StyleSheet.create({
   },
   checkoutText: { color: colors.darkPink, fontSize: 16, fontWeight: "bold" },
 });
+

@@ -1,5 +1,5 @@
 ﻿import { useRef } from "react";
-import { View, Text, Image, Pressable, Animated, Alert, StyleSheet } from "react-native";
+import { View, Text, Image, Pressable, Animated, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, ShoppingCart } from "lucide-react-native";
 import CategorySection from "../components/CategorySection";
@@ -50,7 +50,7 @@ export default function Menu() {
             <Text style={styles.menuTitle}>Menu</Text>
           </Pressable>
 
-          <Pressable style={styles.cartButton} onPress={() => Alert.alert("Cart page coming soon.")}>
+          <Pressable style={styles.cartButton} onPress={() => router.push("/coffee-cart")}>
             <ShoppingCart size={18} color={colors.darkPink} />
             <Text style={styles.cartText}>View Cart</Text>
           </Pressable>
@@ -90,3 +90,4 @@ const styles = StyleSheet.create({
   cartText: { color: colors.darkPink, fontWeight: "600" },
   cafeName: { color: colors.rose, fontSize: 14, marginBottom: 16, marginLeft: 36 },
 });
+

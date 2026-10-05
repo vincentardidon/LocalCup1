@@ -85,8 +85,8 @@ export default function Customized() {
     extrapolate: "clamp",
   });
 
-  // Save one customized item into the "cart" list in AsyncStorage
-  const handleAddToCart = async () => {
+  // Save the customized item into the "cart" list in AsyncStorage
+  const saveToCart = async () => {
     const item = {
       cartId: Date.now().toString(),
       productId: product.id,
@@ -101,7 +101,20 @@ export default function Customized() {
     const cart = saved ? JSON.parse(saved) : [];
     cart.push(item); // 2. add the new item
     await AsyncStorage.setItem("cart", JSON.stringify(cart)); // 3. save it again
-    Alert.alert("Added to cart!");
+  };
+
+  // Add to Cart: save, then go back to the Menu so the customer can keep ordering
+  const handleAddToCart = async () => {
+    await saveToCart();
+    Alert.alert("Added to cart!", "You can keep ordering.", [
+      { text: "OK", onPress: () => router.back() },
+    ]);
+  };
+
+  // Check Out: save this item too (so the cart is never empty), then open the Coffee Cart
+  const handleCheckOut = async () => {
+    await saveToCart();
+    router.push("/coffee-cart");
   };
 
   if (!product) {
@@ -178,7 +191,7 @@ export default function Customized() {
           <Pressable style={styles.cartButton} onPress={handleAddToCart}>
             <Text style={styles.cartText}>Add to Cart</Text>
           </Pressable>
-          <Pressable style={styles.checkoutButton} onPress={() => Alert.alert("Checkout coming soon.")}>
+          <Pressable style={styles.checkoutButton} onPress={handleCheckOut}>
             <Text style={styles.checkoutText}>Check Out</Text>
           </Pressable>
         </View>

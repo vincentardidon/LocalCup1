@@ -1,16 +1,18 @@
 ﻿import { useCallback, useRef, useState } from "react";
-import { View, Text, Image, Pressable, Animated, Alert, StyleSheet } from "react-native";
+import { View, Text, Pressable, Animated, Alert, StyleSheet } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CartItem from "../components/CartItem";
+import AnimatedHeader from "../components/AnimatedHeader";
 import { colors } from "../constants/colors";
 
 export default function CoffeeCart() {
   const router = useRouter();
+  const scrollY = useRef(new Animated.Value(0)).current;
   const [cart, setCart] = useState([]);
 
-  // Load the cart from AsyncStorage when the page opens
+  // Load the cart from AsyncStorage every time this page opens
   useFocusEffect(
     useCallback(() => {
       AsyncStorage.getItem("cart").then((saved) => {
@@ -26,43 +28,49 @@ export default function CoffeeCart() {
     await AsyncStorage.setItem("cart", JSON.stringify(updated));
   };
 
-  // Add up all prices (works even if a price is saved as text like "P100")
-  // Check Out: show the confirmation, then empty the cart (screen and AsyncStorage)
-  const handleCheckout = () => {
-    Alert.alert("Your order has been placed for checkout.", "", [
-      {
-        text: "OK",
-        onPress: async () => {
-          await AsyncStorage.removeItem("cart");
-          setCart([]);
-        },
-      },
-    ]);
-  };
+  // Add up all prices (works even if a price is saved as text)
   const total = cart.reduce(
     (sum, item) => sum + Number(String(item.price).replace(/[^0-9.]/g, "")),
     0
   );
 
-  // Header animation (same as Menu and Customized)
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const scale = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [1, 0.7],
-    extrapolate: "clamp",
-  });
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [110, 84],
-    extrapolate: "clamp",
-  });
+  // Check Out: save the order, clear the cart, open Order Confirmation
+  const handleCheckout = async () => {
+    if (cart.length === 0) {
+      Alert.alert("Your cart is empty.");
+      return;
+    }
+
+    // 1. Get the old orders and make the next order number (LC-001, LC-002...)
+    const saved = await AsyncStorage.getItem("orderHistory");
+    const orders = saved ? JSON.parse(saved) : [];
+    const orderNumber = "LC-" + String(orders.length + 1).padStart(3, "0");
+
+    // 2. Create the completed order
+    const newOrder = {
+      orderNumber: orderNumber,
+      items: cart,
+      total: total,
+      status: "Order Received",
+      date: new Date().toLocaleString(),
+    };
+
+    // 3. Save it in Order History and as the current order
+    orders.push(newOrder);
+    await AsyncStorage.setItem("orderHistory", JSON.stringify(orders));
+    await AsyncStorage.setItem("currentOrder", JSON.stringify(newOrder));
+
+    // 4. Clear the active cart
+    await AsyncStorage.removeItem("cart");
+    setCart([]);
+
+    // 5. Show the confirmation page
+    router.replace("/order-confirmation");
+  };
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.header, { height: headerHeight, transform: [{ scale }] }]}>
-        <Image source={require("../assets/images/logo.png")} style={styles.logo} />
-        <Text style={styles.title}>LocalCup1</Text>
-      </Animated.View>
+      <AnimatedHeader scrollY={scrollY} />
 
       <Animated.ScrollView
         onScroll={Animated.event(
@@ -80,7 +88,7 @@ export default function CoffeeCart() {
         <Text style={styles.pageTitle}>Coffee Cart</Text>
 
         {cart.length === 0 ? (
-          // Empty cart message
+          // Empty cart: no Check Out button is shown
           <View style={styles.emptyBox}>
             <Text style={styles.emptyText}>Your coffee cart is empty.</Text>
             <Pressable style={styles.menuButton} onPress={() => router.dismissTo("/menu")}>
@@ -98,10 +106,7 @@ export default function CoffeeCart() {
               <Text style={styles.totalValue}>{"\u20B1"}{total}</Text>
             </View>
 
-            <Pressable
-              style={styles.checkoutButton}
-              onPress={handleCheckout}
-            >
+            <Pressable style={styles.checkoutButton} onPress={handleCheckout}>
               <Text style={styles.checkoutText}>Check Out</Text>
             </Pressable>
           </>
@@ -113,9 +118,6 @@ export default function CoffeeCart() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.cream, paddingTop: 40 },
-  header: { alignItems: "center", justifyContent: "center", gap: 4 },
-  logo: { width: 48, height: 48 },
-  title: { fontSize: 24, fontWeight: "bold", color: colors.darkPink },
   content: { padding: 18, paddingBottom: 60 },
   backButton: { alignSelf: "flex-start", paddingVertical: 4, marginBottom: 8 },
   pageTitle: { fontSize: 26, fontWeight: "bold", color: colors.text, marginBottom: 16 },
@@ -137,6 +139,3 @@ const styles = StyleSheet.create({
   checkoutButton: { alignItems: "center", backgroundColor: colors.darkPink, paddingVertical: 16, borderRadius: 14, marginTop: 20 },
   checkoutText: { color: colors.white, fontSize: 17, fontWeight: "bold" },
 });
-
-
-

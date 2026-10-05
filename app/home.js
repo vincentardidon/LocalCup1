@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import { View, Text, Image, FlatList, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { LogOut } from "lucide-react-native";
+import { LogOut, ClipboardList } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import SearchBar from "../components/SearchBar";
 import CafeCard from "../components/CafeCard";
@@ -13,12 +13,14 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [favorites, setFavorites] = useState([]);
 
+  // Load saved favorites when the screen opens
   useEffect(() => {
     AsyncStorage.getItem("favorites").then((saved) => {
       if (saved) setFavorites(JSON.parse(saved));
     });
   }, []);
 
+  // Add or remove a cafe ID, then save the list locally
   const toggleFavorite = async (id) => {
     const updated = favorites.includes(id)
       ? favorites.filter((fav) => fav !== id)
@@ -27,11 +29,13 @@ export default function Home() {
     await AsyncStorage.setItem("favorites", JSON.stringify(updated));
   };
 
+  // Remove the login value and go back to the Login screen
   const handleLogout = async () => {
     await AsyncStorage.removeItem("isLoggedIn");
     router.replace("/");
   };
 
+  // Simple search: keep cafes whose name contains the typed text
   const filteredCafes = cafes.filter((cafe) =>
     cafe.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -51,7 +55,14 @@ export default function Home() {
 
       <SearchBar value={search} onChangeText={setSearch} />
 
-      <Text style={styles.sectionTitle}>Cafe's</Text>
+      {/* Cafe's title on the left, Order History button on the right */}
+      <View style={styles.sectionRow}>
+        <Text style={styles.sectionTitle}>Cafe's</Text>
+        <Pressable style={styles.historyButton} onPress={() => router.push("/order-history")}>
+          <ClipboardList size={18} color={colors.darkPink} />
+          <Text style={styles.historyText}>Order History</Text>
+        </Pressable>
+      </View>
 
       <FlatList
         data={filteredCafes}
@@ -77,6 +88,19 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   logo: { width: 36, height: 36 },
   title: { fontSize: 26, fontWeight: "bold", color: colors.darkPink },
-  sectionTitle: { fontSize: 20, fontWeight: "bold", color: colors.text, marginTop: 20, marginBottom: 12 },
+  sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 20, marginBottom: 12 },
+  sectionTitle: { fontSize: 20, fontWeight: "bold", color: colors.text },
+  historyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.beige,
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  historyText: { color: colors.darkPink, fontWeight: "600" },
   empty: { textAlign: "center", color: colors.rose, fontSize: 16, marginTop: 30 },
 });

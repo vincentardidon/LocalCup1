@@ -1,22 +1,49 @@
-﻿import { useCallback, useRef, useState } from "react";
-import { View, Text, Pressable, Animated, StyleSheet } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  View,
+  Text,
+  Pressable,
+  Animated,
+  StyleSheet,
+} from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import AnimatedHeader from "../components/AnimatedHeader";
 import { colors } from "../constants/colors";
+import { readStoredJson } from "../utils/storage";
 
 export default function OrderHistory() {
   const router = useRouter();
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const [scrollY] = useState(() => new Animated.Value(0));
   const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   // Load the saved orders every time this page opens
   useFocusEffect(
     useCallback(() => {
-      AsyncStorage.getItem("orderHistory").then((saved) => {
-        setOrders(saved ? JSON.parse(saved) : []);
-      });
+      let active = true;
+
+      const loadOrders = async () => {
+        setIsLoading(true);
+        setLoadError("");
+        try {
+          const savedOrders = await readStoredJson("orderHistory", []);
+          if (!Array.isArray(savedOrders)) throw new Error("Saved order history is not a list.");
+          if (active) setOrders(savedOrders);
+        } catch (error) {
+          console.error("Failed to load order history.", error);
+          if (active) setLoadError("Unable to load order history. Please try again.");
+        } finally {
+          if (active) setIsLoading(false);
+        }
+      };
+
+      loadOrders();
+      return () => {
+        active = false;
+      };
     }, [])
   );
 
@@ -39,7 +66,11 @@ export default function OrderHistory() {
 
         <Text style={styles.pageTitle}>Order History</Text>
 
-        {orders.length === 0 ? (
+        {isLoading ? (
+          <ActivityIndicator color={colors.darkPink} style={styles.loading} />
+        ) : loadError !== "" ? (
+          <Text style={styles.error}>{loadError}</Text>
+        ) : orders.length === 0 ? (
           // Empty state
           <View style={styles.emptyBox}>
             <Text style={styles.emptyText}>No previous orders yet.</Text>
@@ -87,4 +118,6 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 17, color: colors.rose },
   homeButton: { backgroundColor: colors.darkPink, paddingVertical: 12, paddingHorizontal: 28, borderRadius: 14 },
   homeButtonText: { color: colors.white, fontWeight: "bold", fontSize: 16 },
+  loading: { marginTop: 40 },
+  error: { textAlign: "center", color: colors.rose, marginTop: 20 },
 });

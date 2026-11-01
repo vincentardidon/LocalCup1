@@ -1,4 +1,4 @@
-﻿import { useRef } from "react";
+import { useState } from "react";
 import { View, Text, Image, Pressable, Animated, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, ShoppingCart } from "lucide-react-native";
@@ -11,7 +11,7 @@ export default function Menu() {
   const { name } = useLocalSearchParams(); // cafe name sent from Home
 
   // scrollY follows how far the page has been scrolled
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const [scrollY] = useState(() => new Animated.Value(0));
 
   // Scrolled 0 -> 100: scale goes 1 -> 0.7, height goes 110 -> 84
   const scale = scrollY.interpolate({
@@ -90,4 +90,3 @@ const styles = StyleSheet.create({
   cartText: { color: colors.darkPink, fontWeight: "600" },
   cafeName: { color: colors.rose, fontSize: 14, marginBottom: 16, marginLeft: 36 },
 });
-

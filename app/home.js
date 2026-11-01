@@ -15,9 +15,23 @@ export default function Home() {
 
   // Load saved favorites when the screen opens
   useEffect(() => {
-    AsyncStorage.getItem("favorites").then((saved) => {
-      if (saved) setFavorites(JSON.parse(saved));
-    });
+    let active = true;
+
+    const loadFavorites = async () => {
+      try {
+        const saved = await readStoredJson("favorites", []);
+        if (!Array.isArray(saved)) throw new Error("Saved favorites are not a list.");
+        if (active) setFavorites(saved);
+      } catch (error) {
+        console.error("Failed to load favorites.", error);
+        if (active) Alert.alert("Unable to load favorites", "Please restart the app and try again.");
+      }
+    };
+
+    loadFavorites();
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Add or remove a cafe ID, then save the list locally
@@ -25,14 +39,24 @@ export default function Home() {
     const updated = favorites.includes(id)
       ? favorites.filter((fav) => fav !== id)
       : [...favorites, id];
-    setFavorites(updated);
-    await AsyncStorage.setItem("favorites", JSON.stringify(updated));
+    try {
+      await writeStoredJson("favorites", updated);
+      setFavorites(updated);
+    } catch (error) {
+      console.error("Failed to save favorites.", error);
+      Alert.alert("Unable to save favorite", "Please try again.");
+    }
   };
 
   // Remove the login value and go back to the Login screen
   const handleLogout = async () => {
-    await AsyncStorage.removeItem("isLoggedIn");
-    router.replace("/");
+    try {
+      await AsyncStorage.removeItem("isLoggedIn");
+      router.replace("/");
+    } catch (error) {
+      console.error("Failed to log out.", error);
+      Alert.alert("Unable to log out", "Please try again.");
+    }
   };
 
   // Simple search: keep cafes whose name contains the typed text
@@ -57,7 +81,7 @@ export default function Home() {
 
       {/* Cafe's title on the left, Order History button on the right */}
       <View style={styles.sectionRow}>
-        <Text style={styles.sectionTitle}>Cafe's</Text>
+        <Text style={styles.sectionTitle}>Cafes</Text>
         <Pressable style={styles.historyButton} onPress={() => router.push("/order-history")}>
           <ClipboardList size={18} color={colors.darkPink} />
           <Text style={styles.historyText}>Order History</Text>

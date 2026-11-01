@@ -1,7 +1,7 @@
 ﻿import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { colors } from "../constants/colors";
 
 const MOCK_EMAIL = "user@localcup.com";
@@ -12,19 +12,48 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem("isLoggedIn").then((value) => {
-      if (value === "true") router.replace("/home");
-    });
-  }, []);
+    let active = true;
+
+    const checkSession = async () => {
+      try {
+        const value = await AsyncStorage.getItem("isLoggedIn");
+        if (active && value === "true") router.replace("/home");
+      } catch (loadError) {
+        console.error("Failed to check the saved login.", loadError);
+        if (active) setError("Could not check your saved login. Please try again.");
+      } finally {
+        if (active) setCheckingSession(false);
+      }
+    };
+
+    checkSession();
+    return () => {
+      active = false;
+    };
+  }, [router]);
 
   const handleLogin = async () => {
-    if (email.trim().toLowerCase() === MOCK_EMAIL && password === MOCK_PASSWORD) {
+    if (checkingSession || signingIn) return;
+    setError("");
+
+    if (email.trim().toLowerCase() !== MOCK_EMAIL || password !== MOCK_PASSWORD) {
+      setError("Invalid email or password.");
+      return;
+    }
+
+    setSigningIn(true);
+    try {
       await AsyncStorage.setItem("isLoggedIn", "true");
       router.replace("/home");
-    } else {
-      setError("Invalid email or password.");
+    } catch (loginError) {
+      console.error("Failed to save the login.", loginError);
+      setError("Could not log in. Please try again.");
+    } finally {
+      setSigningIn(false);
     }
   };
 
@@ -53,8 +82,16 @@ export default function Login() {
 
       {error !== "" && <Text style={styles.error}>{error}</Text>}
 
-      <Pressable style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
+      <Pressable
+        style={styles.button}
+        onPress={handleLogin}
+        disabled={checkingSession || signingIn}
+      >
+        {checkingSession || signingIn ? (
+          <ActivityIndicator color={colors.white} />
+        ) : (
+          <Text style={styles.buttonText}>Login</Text>
+        )}
       </Pressable>
     </View>
   );
@@ -86,7 +123,9 @@ const styles = StyleSheet.create({
   button: {
     alignSelf: "stretch",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.darkPink,
+    minHeight: 48,
     paddingVertical: 14,
     borderRadius: 14,
   },

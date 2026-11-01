@@ -1,11 +1,21 @@
-﻿import { useRef, useState } from "react";
-import { View, Text, Image, Pressable, TextInput, Animated, Alert, StyleSheet } from "react-native";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  View,
+  Text,
+  Image,
+  Pressable,
+  TextInput,
+  Animated,
+  Alert,
+  StyleSheet,
+} from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomizationOption from "../components/CustomizationOption";
 import { coffeeBased, nonCoffeeBased, soda, pastries, meals } from "../data/products";
 import { colors } from "../constants/colors";
+import { readStoredJson, writeStoredJson } from "../utils/storage";
 
 // All products in one list, so we can find the one the customer tapped
 const allProducts = [...coffeeBased, ...nonCoffeeBased, ...soda, ...pastries, ...meals];
@@ -59,7 +69,7 @@ export default function Customized() {
   const { id } = useLocalSearchParams(); // product id sent from the Menu page
 
   // Find the selected product, then get the options for its category
-  const product = allProducts.find((p) => p.id === id);
+  const product = typeof id === "string" ? allProducts.find((p) => p.id === id) : undefined;
   const sections = product ? customOptions[product.category] : [];
 
   // selected = the chosen option for each section, e.g. { Size: "Medium", ... }
@@ -71,9 +81,10 @@ export default function Customized() {
     return start;
   });
   const [instructions, setInstructions] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   // Header animation (same as the Menu page)
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const [scrollY] = useState(() => new Animated.Value(0));
   const scale = scrollY.interpolate({
     inputRange: [0, 100],
     outputRange: [1, 0.7],
@@ -100,37 +111,58 @@ export default function Customized() {
       instructions: instructions,
       quantity: 1,
     };
-    const saved = await AsyncStorage.getItem("cart"); // 1. get existing cart
-    const cart = saved ? JSON.parse(saved) : [];
+    const cart = await readStoredJson("cart", []);
+    if (!Array.isArray(cart)) throw new Error("Saved cart is not a list.");
     cart.push(item); // 2. add the new item
-    await AsyncStorage.setItem("cart", JSON.stringify(cart)); // 3. save it again
+    await writeStoredJson("cart", cart); // 3. save it again
   };
 
   // Add to Cart: save, then go back to the Menu so the customer can keep ordering
   const handleAddToCart = async () => {
+    if (isSaving) return;
     if (!isComplete()) {
       Alert.alert("Please complete your customization.");
       return;
     }
-    await saveToCart();
-    Alert.alert("Added to cart!", "You can keep ordering.", [
-      { text: "OK", onPress: () => router.back() },
-    ]);
+    setIsSaving(true);
+    try {
+      await saveToCart();
+      Alert.alert("Added to cart!", "You can keep ordering.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      console.error("Failed to add the customized item to the cart.", error);
+      Alert.alert("Unable to add to cart", "Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Check Out: save this item too (so the cart is never empty), then open the Coffee Cart
   const handleCheckOut = async () => {
+    if (isSaving) return;
     if (!isComplete()) {
       Alert.alert("Please complete your customization.");
       return;
     }
-    await saveToCart();
-    router.push("/coffee-cart");
+    setIsSaving(true);
+    try {
+      await saveToCart();
+      router.push("/coffee-cart");
+    } catch (error) {
+      console.error("Failed to add the customized item before checkout.", error);
+      Alert.alert("Unable to open the cart", "Your item was not saved. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!product) {
     return (
       <View style={styles.container}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft size={26} color={colors.darkPink} />
+        </Pressable>
         <Text style={styles.notFound}>Product not found.</Text>
       </View>
     );
@@ -199,11 +231,15 @@ export default function Customized() {
 
         {/* Add to Cart on the left, Check Out on the right */}
         <View style={styles.buttonRow}>
-          <Pressable style={styles.cartButton} onPress={handleAddToCart}>
-            <Text style={styles.cartText}>Add to Cart</Text>
+          <Pressable style={styles.cartButton} onPress={handleAddToCart} disabled={isSaving}>
+            {isSaving ? <ActivityIndicator color={colors.white} /> : <Text style={styles.cartText}>Add to Cart</Text>}
           </Pressable>
-          <Pressable style={styles.checkoutButton} onPress={handleCheckOut}>
-            <Text style={styles.checkoutText}>Check Out</Text>
+          <Pressable style={styles.checkoutButton} onPress={handleCheckOut} disabled={isSaving}>
+            {isSaving ? (
+              <ActivityIndicator color={colors.darkPink} />
+            ) : (
+              <Text style={styles.checkoutText}>Check Out</Text>
+            )}
           </Pressable>
         </View>
       </Animated.ScrollView>
@@ -254,4 +290,3 @@ const styles = StyleSheet.create({
   },
   checkoutText: { color: colors.darkPink, fontSize: 16, fontWeight: "bold" },
 });
-

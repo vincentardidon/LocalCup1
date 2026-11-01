@@ -1,27 +1,54 @@
-﻿import { useCallback, useRef, useState } from "react";
-import { View, Text, Pressable, Animated, StyleSheet } from "react-native";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, View, Text, Pressable, Animated, StyleSheet } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ArrowLeft, Check } from "lucide-react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import AnimatedHeader from "../components/AnimatedHeader";
 import { colors } from "../constants/colors";
+import { readStoredJson } from "../utils/storage";
 
 // The three steps of an order, in order
 const steps = ["Order Received", "Preparing", "Ready for Pickup"];
 
 export default function OrderStatus() {
   const router = useRouter();
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const [scrollY] = useState(() => new Animated.Value(0));
   const [order, setOrder] = useState(null);
-  const [loaded, setLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   // Load the current order every time this page opens (the customer only views it)
   useFocusEffect(
     useCallback(() => {
-      AsyncStorage.getItem("currentOrder").then((saved) => {
-        setOrder(saved ? JSON.parse(saved) : null);
-        setLoaded(true);
-      });
+      let active = true;
+
+      const loadCurrentOrder = async () => {
+        setIsLoading(true);
+        setLoadError("");
+        try {
+          const savedOrder = await readStoredJson("currentOrder", null);
+          if (
+            savedOrder !== null
+            && (
+              typeof savedOrder !== "object"
+              || Array.isArray(savedOrder)
+              || typeof savedOrder.orderNumber !== "string"
+            )
+          ) {
+            throw new Error("Saved current order is invalid.");
+          }
+          if (active) setOrder(savedOrder);
+        } catch (error) {
+          console.error("Failed to load order status.", error);
+          if (active) setLoadError("Unable to load order status. Please try again.");
+        } finally {
+          if (active) setIsLoading(false);
+        }
+      };
+
+      loadCurrentOrder();
+      return () => {
+        active = false;
+      };
     }, [])
   );
 
@@ -47,7 +74,11 @@ export default function OrderStatus() {
 
         <Text style={styles.pageTitle}>Order Status</Text>
 
-        {loaded && !order ? (
+        {isLoading ? (
+          <ActivityIndicator color={colors.darkPink} style={styles.loading} />
+        ) : loadError !== "" ? (
+          <Text style={styles.error}>{loadError}</Text>
+        ) : !order ? (
           // Empty state: there is no order yet
           <View style={styles.emptyBox}>
             <Text style={styles.emptyText}>No active order yet.</Text>
@@ -115,4 +146,6 @@ const styles = StyleSheet.create({
   primaryText: { color: colors.white, fontSize: 16, fontWeight: "bold" },
   emptyBox: { alignItems: "center", gap: 16, marginTop: 40 },
   emptyText: { fontSize: 17, color: colors.rose },
+  loading: { marginTop: 40 },
+  error: { textAlign: "center", color: colors.rose, marginTop: 20 },
 });

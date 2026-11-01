@@ -1,31 +1,68 @@
-﻿import { useCallback, useRef, useState } from "react";
-import { View, Text, Pressable, Animated, Alert, StyleSheet } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  View,
+  Text,
+  Pressable,
+  Animated,
+  Alert,
+  StyleSheet,
+} from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CartItem from "../components/CartItem";
 import AnimatedHeader from "../components/AnimatedHeader";
 import { colors } from "../constants/colors";
+import { readStoredJson, writeStoredJson } from "../utils/storage";
 
 export default function CoffeeCart() {
   const router = useRouter();
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const [scrollY] = useState(() => new Animated.Value(0));
   const [cart, setCart] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
 
   // Load the cart from AsyncStorage every time this page opens
   useFocusEffect(
     useCallback(() => {
-      AsyncStorage.getItem("cart").then((saved) => {
-        setCart(saved ? JSON.parse(saved) : []);
-      });
+      let active = true;
+
+      const loadCart = async () => {
+        setIsLoading(true);
+        setLoadError("");
+        try {
+          const savedCart = await readStoredJson("cart", []);
+          if (!Array.isArray(savedCart)) throw new Error("Saved cart is not a list.");
+          if (active) setCart(savedCart);
+        } catch (error) {
+          console.error("Failed to load the cart.", error);
+          if (active) setLoadError("Unable to load your cart. Please try again.");
+        } finally {
+          if (active) setIsLoading(false);
+        }
+      };
+
+      loadCart();
+      return () => {
+        active = false;
+      };
     }, [])
   );
 
   // Remove one item, then save the new list and update the screen
   const handleRemove = async (cartId) => {
     const updated = cart.filter((item) => item.cartId !== cartId);
-    setCart(updated);
-    await AsyncStorage.setItem("cart", JSON.stringify(updated));
+    setActionError("");
+    try {
+      await writeStoredJson("cart", updated);
+      setCart(updated);
+    } catch (error) {
+      console.error("Failed to remove a cart item.", error);
+      setActionError("Unable to remove this item. Please try again.");
+    }
   };
 
   // Add up all prices (works even if a price is saved as text)
@@ -36,36 +73,46 @@ export default function CoffeeCart() {
 
   // Check Out: save the order, clear the cart, open Order Confirmation
   const handleCheckout = async () => {
-    if (cart.length === 0) {
-      Alert.alert("Your cart is empty.");
+    if (cart.length === 0 || isCheckingOut) {
+      if (cart.length === 0) Alert.alert("Your cart is empty.");
       return;
     }
 
-    // 1. Get the old orders and make the next order number (LC-001, LC-002...)
-    const saved = await AsyncStorage.getItem("orderHistory");
-    const orders = saved ? JSON.parse(saved) : [];
-    const orderNumber = "LC-" + String(orders.length + 1).padStart(3, "0");
+    setIsCheckingOut(true);
+    setActionError("");
+    try {
+      const orders = await readStoredJson("orderHistory", []);
+      if (!Array.isArray(orders)) throw new Error("Saved order history is not a list.");
+      const savedOrder = await readStoredJson("currentOrder", null);
+      const isRetrying = savedOrder
+        && Array.isArray(savedOrder.items)
+        && typeof savedOrder.orderNumber === "string"
+        && savedOrder.items.length === cart.length
+        && cart.every((item, index) => savedOrder.items[index].cartId === item.cartId);
+      const newOrder = isRetrying
+        ? savedOrder
+        : {
+            orderNumber: "LC-" + String(orders.length + 1).padStart(3, "0"),
+            items: cart,
+            total,
+            status: "Order Received",
+            date: new Date().toLocaleString(),
+          };
 
-    // 2. Create the completed order
-    const newOrder = {
-      orderNumber: orderNumber,
-      items: cart,
-      total: total,
-      status: "Order Received",
-      date: new Date().toLocaleString(),
-    };
-
-    // 3. Save it in Order History and as the current order
-    orders.push(newOrder);
-    await AsyncStorage.setItem("orderHistory", JSON.stringify(orders));
-    await AsyncStorage.setItem("currentOrder", JSON.stringify(newOrder));
-
-    // 4. Clear the active cart
-    await AsyncStorage.removeItem("cart");
-    setCart([]);
-
-    // 5. Show the confirmation page
-    router.replace("/order-confirmation");
+      await writeStoredJson("currentOrder", newOrder);
+      if (!orders.some((order) => order.orderNumber === newOrder.orderNumber)) {
+        orders.push(newOrder);
+        await writeStoredJson("orderHistory", orders);
+      }
+      await AsyncStorage.removeItem("cart");
+      setCart([]);
+      router.replace("/order-confirmation");
+    } catch (error) {
+      console.error("Failed to complete checkout.", error);
+      setActionError("Unable to complete checkout. Your cart has been kept; please try again.");
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   return (
@@ -87,7 +134,13 @@ export default function CoffeeCart() {
 
         <Text style={styles.pageTitle}>Coffee Cart</Text>
 
-        {cart.length === 0 ? (
+        {actionError !== "" && <Text style={styles.error}>{actionError}</Text>}
+
+        {isLoading ? (
+          <ActivityIndicator color={colors.darkPink} style={styles.loading} />
+        ) : loadError !== "" ? (
+          <Text style={styles.error}>{loadError}</Text>
+        ) : cart.length === 0 ? (
           // Empty cart: no Check Out button is shown
           <View style={styles.emptyBox}>
             <Text style={styles.emptyText}>Your coffee cart is empty.</Text>
@@ -106,8 +159,16 @@ export default function CoffeeCart() {
               <Text style={styles.totalValue}>{"\u20B1"}{total}</Text>
             </View>
 
-            <Pressable style={styles.checkoutButton} onPress={handleCheckout}>
-              <Text style={styles.checkoutText}>Check Out</Text>
+            <Pressable
+              style={styles.checkoutButton}
+              onPress={handleCheckout}
+              disabled={isCheckingOut}
+            >
+              {isCheckingOut ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.checkoutText}>Check Out</Text>
+              )}
             </Pressable>
           </>
         )}
@@ -138,4 +199,6 @@ const styles = StyleSheet.create({
   totalValue: { fontSize: 20, fontWeight: "bold", color: colors.darkPink },
   checkoutButton: { alignItems: "center", backgroundColor: colors.darkPink, paddingVertical: 16, borderRadius: 14, marginTop: 20 },
   checkoutText: { color: colors.white, fontSize: 17, fontWeight: "bold" },
+  loading: { marginTop: 40 },
+  error: { color: colors.rose, textAlign: "center", marginTop: 16 },
 });

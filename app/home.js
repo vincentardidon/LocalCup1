@@ -1,12 +1,13 @@
-﻿import { useEffect, useState } from "react";
-import { View, Text, Image, FlatList, Pressable, StyleSheet } from "react-native";
+﻿import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { LogOut, ClipboardList } from "lucide-react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import SearchBar from "../components/SearchBar";
+import { ClipboardList, LogOut } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import CafeCard from "../components/CafeCard";
-import { cafes } from "../data/cafes";
+import SearchBar from "../components/SearchBar";
 import { colors } from "../constants/colors";
+import { cafes } from "../data/cafes";
+import { readStoredJson, writeStoredJson } from "../utils/storage";
 
 export default function Home() {
   const router = useRouter();

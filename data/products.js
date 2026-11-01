@@ -1,10 +1,10 @@
 ﻿// Mock product data. Each product has a category, which decides its customization options.
 export const coffeeBased = [
-  { id: "c1", name: "Espresso", price: 100, category: "Coffee Based", image: require("../assets/images/menu/espresso.png") },
+  { id: "c1", name: "Espresso", price: 100, category: "Coffee Based", image: require("../assets/images/menu/espresso.jpg") },
   { id: "c2", name: "Cappuccino", price: 120, category: "Coffee Based", image: require("../assets/images/menu/cappuccino.png") },
   { id: "c3", name: "Latte", price: 130, category: "Coffee Based", image: require("../assets/images/menu/latte.png") },
   { id: "c4", name: "Caramel Macchiato", price: 150, category: "Coffee Based", image: require("../assets/images/menu/caramel-macchiato.png") },
-  { id: "c5", name: "Iced Coffee", price: 110, category: "Coffee Based", image: require("../assets/images/menu/iced-coffee.png") },
+  { id: "c5", name: "Iced Coffee", price: 110, category: "Coffee Based", image: require("../assets/images/menu/iced-coffee.jpg") },
 ];
 
 export const nonCoffeeBased = [
@@ -15,22 +15,22 @@ export const nonCoffeeBased = [
 ];
 
 export const soda = [
-  { id: "s1", name: "Coke", price: 50, category: "Soda", image: require("../assets/images/menu/coke.png") },
-  { id: "s2", name: "Sprite", price: 50, category: "Soda", image: require("../assets/images/menu/sprite.png") },
+  { id: "s1", name: "Coke", price: 50, category: "Soda", image: require("../assets/images/menu/coke.jpg") },
+  { id: "s2", name: "Sprite", price: 50, category: "Soda", image: require("../assets/images/menu/sprite.jpg") },
   { id: "s3", name: "Royal", price: 50, category: "Soda", image: require("../assets/images/menu/royal.png") },
-  { id: "s4", name: "Root Beer", price: 60, category: "Soda", image: require("../assets/images/menu/root-beer.png") },
+  { id: "s4", name: "Root Beer", price: 60, category: "Soda", image: require("../assets/images/menu/root-beer.jpg") },
 ];
 
 export const pastries = [
-  { id: "p1", name: "Croissant", price: 90, category: "Pastries", image: require("../assets/images/menu/croissant.png") },
-  { id: "p2", name: "Chocolate Muffin", price: 80, category: "Pastries", image: require("../assets/images/menu/chocolate-muffin.png") },
+  { id: "p1", name: "Croissant", price: 90, category: "Pastries", image: require("../assets/images/menu/croissant.jpg") },
+  { id: "p2", name: "Chocolate Muffin", price: 80, category: "Pastries", image: require("../assets/images/menu/chocolate-muffin.jpg") },
   { id: "p3", name: "Cinnamon Roll", price: 95, category: "Pastries", image: require("../assets/images/menu/cinnamon-roll.png") },
-  { id: "p4", name: "Cheese Danish", price: 100, category: "Pastries", image: require("../assets/images/menu/cheese-danish.png") },
+  { id: "p4", name: "Cheese Danish", price: 100, category: "Pastries", image: require("../assets/images/menu/cheese-danish.jpg") },
 ];
 
 export const meals = [
   { id: "m1", name: "Chicken Sandwich", price: 150, category: "Meals", image: require("../assets/images/menu/chicken-sandwich.png") },
   { id: "m2", name: "Club Sandwich", price: 170, category: "Meals", image: require("../assets/images/menu/club-sandwich.png") },
-  { id: "m3", name: "Pasta", price: 160, category: "Meals", image: require("../assets/images/menu/pasta.png") },
+  { id: "m3", name: "Pasta", price: 160, category: "Meals", image: require("../assets/images/menu/pasta.jpg") },
   { id: "m4", name: "Breakfast Plate", price: 180, category: "Meals", image: require("../assets/images/menu/breakfast-plate.png") },
 ];

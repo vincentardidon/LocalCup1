@@ -1,6 +1,13 @@
-import { View, Text, Image, ImageBackground, Pressable, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
+﻿import { useRouter } from "expo-router";
 import { Heart, Star } from "lucide-react-native";
+import {
+  Image,
+  ImageBackground,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { colors } from "../constants/colors";
 
 export default function CafeCard({ cafe, isFavorite, onToggleFavorite }) {
@@ -23,7 +30,10 @@ export default function CafeCard({ cafe, isFavorite, onToggleFavorite }) {
             </View>
           </View>
 
-          <Pressable onPress={() => onToggleFavorite(cafe.id)} style={styles.heartButton}>
+          <Pressable
+            onPress={() => onToggleFavorite(cafe.id)}
+            style={styles.heartButton}
+          >
             <Heart
               size={18}
               color={isFavorite ? colors.caramel : colors.white}
@@ -36,7 +46,9 @@ export default function CafeCard({ cafe, isFavorite, onToggleFavorite }) {
 
         <Pressable
           style={styles.clickButton}
-          onPress={() => router.push({ pathname: "/menu", params: { name: cafe.name } })}
+          onPress={() =>
+            router.push({ pathname: "/menu", params: { name: cafe.name } })
+          }
         >
           <Text style={styles.clickText}>Explore Menu</Text>
         </Pressable>
@@ -67,7 +79,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.12)",
   },
-  topRow: { flexDirection: "row", justifyContent: "space-between", alignSelf: "stretch" },
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignSelf: "stretch",
+  },
   info: { flex: 1, gap: 4 },
   name: {
     color: colors.white,
@@ -114,5 +130,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  clickText: { color: colors.white, fontWeight: "700", fontSize: 14, letterSpacing: 0.3 },
+  clickText: {
+    color: colors.white,
+    fontWeight: "700",
+    fontSize: 14,
+    letterSpacing: 0.3,
+  },
 });

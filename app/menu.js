@@ -8,12 +8,10 @@ import { colors } from "../constants/colors";
 
 export default function Menu() {
   const router = useRouter();
-  const { name } = useLocalSearchParams(); // cafe name sent from Home
+  const { name } = useLocalSearchParams();
 
-  // scrollY follows how far the page has been scrolled
   const [scrollY] = useState(() => new Animated.Value(0));
 
-  // Scrolled 0 -> 100: scale goes 1 -> 0.7, height goes 110 -> 84
   const scale = scrollY.interpolate({
     inputRange: [0, 100],
     outputRange: [1, 0.7],
@@ -27,13 +25,11 @@ export default function Menu() {
 
   return (
     <View style={styles.container}>
-      {/* Animated header: shrinks when scrolling up, grows back when scrolling down */}
       <Animated.View style={[styles.header, { height: headerHeight, transform: [{ scale }] }]}>
         <Image source={require("../assets/images/logo.png")} style={styles.logo} />
         <Text style={styles.title}>LocalCup1</Text>
       </Animated.View>
 
-      {/* Vertical scroll for the whole page */}
       <Animated.ScrollView
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -43,15 +39,14 @@ export default function Menu() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        {/* Back arrow + Menu title on the left, View Cart on the right */}
         <View style={styles.topRow}>
           <Pressable style={styles.backRow} onPress={() => router.back()}>
-            <ArrowLeft size={26} color={colors.darkPink} />
+            <ArrowLeft size={18} color={colors.white} />
             <Text style={styles.menuTitle}>Menu</Text>
           </Pressable>
 
           <Pressable style={styles.cartButton} onPress={() => router.push("/coffee-cart")}>
-            <ShoppingCart size={18} color={colors.darkPink} />
+            <ShoppingCart size={16} color={colors.caramel} />
             <Text style={styles.cartText}>View Cart</Text>
           </Pressable>
         </View>
@@ -71,22 +66,32 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.cream, paddingTop: 40 },
   header: { alignItems: "center", justifyContent: "center", gap: 4 },
   logo: { width: 48, height: 48 },
-  title: { fontSize: 24, fontWeight: "bold", color: colors.darkPink },
-  content: { padding: 18, paddingBottom: 50 },
-  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-  backRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  menuTitle: { fontSize: 24, fontWeight: "bold", color: colors.text },
+  title: { fontSize: 24, fontWeight: "bold", color: colors.white, letterSpacing: 0.3 },
+  content: { padding: 18, paddingBottom: 60 },
+  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
+  backRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.glassPill,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+  },
+  menuTitle: { fontSize: 18, fontWeight: "bold", color: colors.white },
   cartButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: colors.white,
+    backgroundColor: colors.glassPill,
     borderWidth: 1,
-    borderColor: colors.beige,
-    borderRadius: 16,
+    borderColor: colors.glassBorder,
+    borderRadius: 999,
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
   },
-  cartText: { color: colors.darkPink, fontWeight: "600" },
-  cafeName: { color: colors.rose, fontSize: 14, marginBottom: 16, marginLeft: 36 },
+  cartText: { color: colors.caramel, fontWeight: "700", fontSize: 13 },
+  cafeName: { color: colors.caramel, fontSize: 14, fontWeight: "600", marginBottom: 16, marginTop: 4, marginLeft: 14 },
 });

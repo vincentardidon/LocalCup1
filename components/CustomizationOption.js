@@ -1,8 +1,8 @@
-﻿import { Text, Pressable, StyleSheet } from "react-native";
+import { Text, Pressable, StyleSheet } from "react-native";
 import { Check } from "lucide-react-native";
 import { colors } from "../constants/colors";
 
-// One selectable button. It looks different (and shows a check) when selected.
+// Dark glass option pill matching the size/option chips in screenshot.
 export default function CustomizationOption({ label, selected, onPress }) {
   return (
     <Pressable onPress={onPress} style={[styles.button, selected && styles.selectedButton]}>
@@ -16,15 +16,18 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+    gap: 5,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.dustyPink,
-    backgroundColor: colors.white,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.glassPill,
   },
-  selectedButton: { backgroundColor: colors.darkPink, borderColor: colors.darkPink },
-  text: { color: colors.text, fontSize: 14 },
+  selectedButton: {
+    backgroundColor: colors.glassPillActive,
+    borderColor: colors.glassBorderActive,
+  },
+  text: { color: colors.textSecondary, fontSize: 13, fontWeight: "500" },
   selectedText: { color: colors.white, fontWeight: "600" },
 });

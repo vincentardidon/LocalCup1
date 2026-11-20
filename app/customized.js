@@ -17,14 +17,10 @@ import { coffeeBased, nonCoffeeBased, soda, pastries, meals } from "../data/prod
 import { colors } from "../constants/colors";
 import { readStoredJson, writeStoredJson } from "../utils/storage";
 
-// All products in one list, so we can find the one the customer tapped
 const allProducts = [...coffeeBased, ...nonCoffeeBased, ...soda, ...pastries, ...meals];
-
-// Shared choices
 const sizes = ["Small", "Medium", "Large", "Extra Large"];
 const sugarLevels = ["No Sugar (0%)", "Less Sweet (25%-50%)", "Regular Sweet (100%)", "Extra Sweet (120%)"];
 
-// Customization options for each category. defaultChoice is selected at the start.
 const customOptions = {
   "Coffee Based": [
     { title: "Size", choices: sizes, defaultChoice: "Medium" },
@@ -66,13 +62,11 @@ const customOptions = {
 
 export default function Customized() {
   const router = useRouter();
-  const { id } = useLocalSearchParams(); // product id sent from the Menu page
+  const { id } = useLocalSearchParams();
 
-  // Find the selected product, then get the options for its category
   const product = typeof id === "string" ? allProducts.find((p) => p.id === id) : undefined;
   const sections = product ? customOptions[product.category] : [];
 
-  // selected = the chosen option for each section, e.g. { Size: "Medium", ... }
   const [selected, setSelected] = useState(() => {
     const start = {};
     sections.forEach((section) => {
@@ -83,7 +77,6 @@ export default function Customized() {
   const [instructions, setInstructions] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Header animation (same as the Menu page)
   const [scrollY] = useState(() => new Animated.Value(0));
   const scale = scrollY.interpolate({
     inputRange: [0, 100],
@@ -96,62 +89,56 @@ export default function Customized() {
     extrapolate: "clamp",
   });
 
-  // Save the customized item into the "cart" list in AsyncStorage
-  // Every option group must have a selected value
-  const isComplete = () => sections.every((section) => selected[section.title]);
-
-  const saveToCart = async () => {
-    const item = {
-      cartId: Date.now().toString(),
+  const buildCartItem = () => {
+    if (!product) return null;
+    return {
+      cartId: `${product.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       productId: product.id,
       name: product.name,
-      category: product.category,
       price: product.price,
-      options: selected, // size, temperature, sweetness, strength, milk, add-ons...
-      instructions: instructions,
-      quantity: 1,
+      category: product.category,
+      options: selected,
+      instructions: instructions.trim(),
     };
-    const cart = await readStoredJson("cart", []);
-    if (!Array.isArray(cart)) throw new Error("Saved cart is not a list.");
-    cart.push(item); // 2. add the new item
-    await writeStoredJson("cart", cart); // 3. save it again
   };
 
-  // Add to Cart: save, then go back to the Menu so the customer can keep ordering
   const handleAddToCart = async () => {
-    if (isSaving) return;
-    if (!isComplete()) {
-      Alert.alert("Please complete your customization.");
-      return;
-    }
+    if (!product || isSaving) return;
+    const newItem = buildCartItem();
+    if (!newItem) return;
+
     setIsSaving(true);
     try {
-      await saveToCart();
-      Alert.alert("Added to cart!", "You can keep ordering.", [
-        { text: "OK", onPress: () => router.back() },
+      const existing = await readStoredJson("cart", []);
+      if (!Array.isArray(existing))
+        throw new Error("Saved cart is not a list.");
+      await writeStoredJson("cart", [...existing, newItem]);
+      Alert.alert("Added to Cart!", `${product.name} was added.`, [
+        { text: "View Cart", onPress: () => router.push("/coffee-cart") },
+        { text: "Keep Browsing", onPress: () => router.back() },
       ]);
     } catch (error) {
-      console.error("Failed to add the customized item to the cart.", error);
-      Alert.alert("Unable to add to cart", "Please try again.");
+      console.error("Failed to add an item to the cart.", error);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Check Out: save this item too (so the cart is never empty), then open the Coffee Cart
   const handleCheckOut = async () => {
-    if (isSaving) return;
-    if (!isComplete()) {
-      Alert.alert("Please complete your customization.");
-      return;
-    }
+    if (!product || isSaving) return;
+    const newItem = buildCartItem();
+    if (!newItem) return;
+
     setIsSaving(true);
     try {
-      await saveToCart();
+      const existing = await readStoredJson("cart", []);
+      if (!Array.isArray(existing))
+        throw new Error("Saved cart is not a list.");
+      await writeStoredJson("cart", [...existing, newItem]);
       router.push("/coffee-cart");
     } catch (error) {
-      console.error("Failed to add the customized item before checkout.", error);
-      Alert.alert("Unable to open the cart", "Your item was not saved. Please try again.");
+      console.error("Failed to save and check out.", error);
+      Alert.alert("Unable to proceed to checkout", "Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -160,9 +147,6 @@ export default function Customized() {
   if (!product) {
     return (
       <View style={styles.container}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={26} color={colors.darkPink} />
-        </Pressable>
         <Text style={styles.notFound}>Product not found.</Text>
       </View>
     );
@@ -170,7 +154,6 @@ export default function Customized() {
 
   return (
     <View style={styles.container}>
-      {/* Animated header: smaller when scrolling up, bigger when scrolling down */}
       <Animated.View style={[styles.header, { height: headerHeight, transform: [{ scale }] }]}>
         <Image source={require("../assets/images/logo.png")} style={styles.logo} />
         <Text style={styles.title}>LocalCup1</Text>
@@ -185,13 +168,11 @@ export default function Customized() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        {/* Back arrow */}
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={26} color={colors.darkPink} />
+          <ArrowLeft size={18} color={colors.white} />
         </Pressable>
 
-        {/* Product info: text on the left, picture on the right */}
-        <View style={styles.productRow}>
+        <View style={styles.heroGlassCard}>
           <View style={styles.productInfo}>
             <Text style={styles.productName}>{product.name}</Text>
             <Text style={styles.productCategory}>{product.category}</Text>
@@ -200,9 +181,8 @@ export default function Customized() {
           <Image source={product.image} style={styles.productImage} />
         </View>
 
-        <Text style={styles.sectionTitle}>Customize Your Order</Text>
+        <Text style={styles.sectionTitle}>Customize Your Cup</Text>
 
-        {/* One block of buttons for each option of this category */}
         {sections.map((section) => (
           <View key={section.title} style={styles.optionBlock}>
             <Text style={styles.optionTitle}>{section.title}</Text>
@@ -219,24 +199,23 @@ export default function Customized() {
           </View>
         ))}
 
-        <Text style={styles.sectionTitle}>Other Instructions</Text>
+        <Text style={styles.sectionTitle}>Special Notes</Text>
         <TextInput
           style={styles.input}
-          placeholder="Add special instructions..."
-          placeholderTextColor={colors.dustyPink}
+          placeholder="E.g., extra hot, oat milk, less ice..."
+          placeholderTextColor={colors.textMuted}
           multiline
           value={instructions}
           onChangeText={setInstructions}
         />
 
-        {/* Add to Cart on the left, Check Out on the right */}
         <View style={styles.buttonRow}>
           <Pressable style={styles.cartButton} onPress={handleAddToCart} disabled={isSaving}>
             {isSaving ? <ActivityIndicator color={colors.white} /> : <Text style={styles.cartText}>Add to Cart</Text>}
           </Pressable>
           <Pressable style={styles.checkoutButton} onPress={handleCheckOut} disabled={isSaving}>
             {isSaving ? (
-              <ActivityIndicator color={colors.darkPink} />
+              <ActivityIndicator color={colors.white} />
             ) : (
               <Text style={styles.checkoutText}>Check Out</Text>
             )}
@@ -249,44 +228,95 @@ export default function Customized() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.cream, paddingTop: 40 },
-  notFound: { textAlign: "center", marginTop: 60, color: colors.rose, fontSize: 16 },
+  notFound: { textAlign: "center", marginTop: 60, color: colors.textSecondary, fontSize: 16 },
   header: { alignItems: "center", justifyContent: "center", gap: 4 },
   logo: { width: 48, height: 48 },
-  title: { fontSize: 24, fontWeight: "bold", color: colors.darkPink },
+  title: { fontSize: 24, fontWeight: "bold", color: colors.white, letterSpacing: 0.3 },
   content: { padding: 18, paddingBottom: 60 },
-  backButton: { alignSelf: "flex-start", paddingVertical: 4, marginBottom: 8 },
-  productRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.glassPill,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  heroGlassCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: colors.glassCard,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    padding: 16,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 4,
+    marginBottom: 8,
+  },
   productInfo: { flex: 1, gap: 4 },
-  productName: { fontSize: 26, fontWeight: "bold", color: colors.text },
-  productCategory: { fontSize: 15, color: colors.rose },
-  productPrice: { fontSize: 18, fontWeight: "bold", color: colors.darkPink },
-  productImage: { width: 120, height: 120, borderRadius: 18, backgroundColor: colors.softPink },
-  sectionTitle: { fontSize: 20, fontWeight: "bold", color: colors.text, marginTop: 24, marginBottom: 12 },
-  optionBlock: { marginBottom: 16 },
-  optionTitle: { fontSize: 16, fontWeight: "600", color: colors.darkPink, marginBottom: 8 },
+  productName: { fontSize: 22, fontWeight: "bold", color: colors.white, letterSpacing: 0.2 },
+  productCategory: { fontSize: 13, color: colors.textSecondary, fontWeight: "600" },
+  productPrice: { fontSize: 20, fontWeight: "bold", color: colors.caramel, marginTop: 4 },
+  productImage: { width: 110, height: 110, borderRadius: 18, backgroundColor: colors.softPink },
+  sectionTitle: { fontSize: 18, fontWeight: "bold", color: colors.white, marginTop: 24, marginBottom: 12, letterSpacing: 0.2 },
+  optionBlock: { marginBottom: 18 },
+  optionTitle: { fontSize: 14, fontWeight: "600", color: colors.textSecondary, marginBottom: 10 },
   optionRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   input: {
     minHeight: 90,
-    backgroundColor: colors.white,
+    backgroundColor: colors.glassInput,
     borderWidth: 1,
-    borderColor: colors.beige,
-    borderRadius: 14,
+    borderColor: colors.glassBorder,
+    borderRadius: 18,
     padding: 14,
-    fontSize: 15,
-    color: colors.text,
+    fontSize: 14,
+    color: colors.white,
     textAlignVertical: "top",
   },
-  buttonRow: { flexDirection: "row", justifyContent: "space-between", gap: 12, marginTop: 24 },
-  cartButton: { flex: 1, alignItems: "center", backgroundColor: colors.darkPink, paddingVertical: 14, borderRadius: 14 },
-  cartText: { color: colors.white, fontSize: 16, fontWeight: "bold" },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    marginTop: 26,
+  },
+  cartButton: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.ctaButton,
+    paddingVertical: 15,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.ctaBorder,
+    shadowColor: colors.ctaButton,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cartText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: "bold",
+    letterSpacing: 0.3,
+  },
   checkoutButton: {
     flex: 1,
     alignItems: "center",
-    backgroundColor: colors.cream,
+    justifyContent: "center",
+    backgroundColor: colors.glassPill,
     borderWidth: 1,
-    borderColor: colors.darkPink,
-    paddingVertical: 14,
-    borderRadius: 14,
+    borderColor: colors.glassBorder,
+    paddingVertical: 15,
+    borderRadius: 999,
   },
-  checkoutText: { color: colors.darkPink, fontSize: 16, fontWeight: "bold" },
+  checkoutText: { color: colors.white, fontSize: 16, fontWeight: "bold", letterSpacing: 0.3 },
 });

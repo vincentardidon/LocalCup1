@@ -1,8 +1,8 @@
-﻿import { Text, Image, Pressable, StyleSheet } from "react-native";
+import { Text, Image, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { colors } from "../constants/colors";
 
-// Reusable card. Tapping it opens the Customized page and sends the product id.
+// Reusable dark glass product card matching the 2x2 grid in reference screenshot.
 export default function ProductCard({ product }) {
   const router = useRouter();
 
@@ -20,21 +20,26 @@ export default function ProductCard({ product }) {
 
 const styles = StyleSheet.create({
   card: {
-    width: 140,
-    backgroundColor: colors.white,
-    borderRadius: 16,
+    width: 150,
+    backgroundColor: colors.glassCard,
+    borderRadius: 20,
     padding: 10,
-    gap: 6,
+    gap: 8,
     borderWidth: 1,
-    borderColor: colors.beige,
+    borderColor: colors.glassBorder,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 3,
   },
   image: {
     width: "100%",
-    height: 100,
-    borderRadius: 12,
+    height: 110,
+    borderRadius: 14,
     resizeMode: "cover",
     backgroundColor: colors.softPink,
   },
-  name: { fontSize: 15, fontWeight: "600", color: colors.text },
-  price: { fontSize: 14, color: colors.rose, fontWeight: "bold" },
+  name: { fontSize: 14, fontWeight: "600", color: colors.white, marginTop: 2 },
+  price: { fontSize: 14, color: colors.caramel, fontWeight: "bold" },
 });

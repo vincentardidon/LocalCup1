@@ -1,11 +1,9 @@
-﻿import { View, Text, Image, Pressable, StyleSheet } from "react-native";
+import { View, Text, Image, Pressable, StyleSheet } from "react-native";
 import { coffeeBased, nonCoffeeBased, soda, pastries, meals } from "../data/products";
 import { colors } from "../constants/colors";
 
-// All products in one list, used to find the picture for a cart item
 const allProducts = [...coffeeBased, ...nonCoffeeBased, ...soda, ...pastries, ...meals];
 
-// Shows one customized item in the cart, with a Remove button
 export default function CartItem({ item, onRemove }) {
   const product = allProducts.find((p) => p.id === item.productId);
 
@@ -20,7 +18,6 @@ export default function CartItem({ item, onRemove }) {
         <Text style={styles.price}>{"\u20B1"}{item.price}</Text>
       </View>
 
-      {/* Only the options that were chosen for this product are shown */}
       <View style={styles.options}>
         {Object.entries(item.options).map(([title, value]) => (
           <Text key={title} style={styles.optionText}>{title}: {value}</Text>
@@ -39,29 +36,42 @@ export default function CartItem({ item, onRemove }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
+    backgroundColor: colors.glassCard,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: colors.beige,
-    padding: 14,
+    borderColor: colors.glassBorder,
+    padding: 16,
     marginBottom: 14,
-    gap: 10,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 3,
   },
   topRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  image: { width: 64, height: 64, borderRadius: 12, backgroundColor: colors.softPink },
+  image: { width: 68, height: 68, borderRadius: 14, backgroundColor: colors.softPink },
   info: { flex: 1, gap: 2 },
-  name: { fontSize: 18, fontWeight: "bold", color: colors.text },
-  category: { fontSize: 14, color: colors.rose },
-  price: { fontSize: 18, fontWeight: "bold", color: colors.darkPink },
-  options: { gap: 2 },
-  optionText: { fontSize: 14, color: colors.text },
-  removeButton: {
-    alignSelf: "flex-end",
-    paddingVertical: 6,
-    paddingHorizontal: 16,
+  name: { fontSize: 17, fontWeight: "bold", color: colors.white },
+  category: { fontSize: 13, color: colors.textSecondary, fontWeight: "500" },
+  price: { fontSize: 17, fontWeight: "bold", color: colors.caramel },
+  options: {
+    gap: 3,
+    backgroundColor: "rgba(18, 11, 8, 0.45)",
+    padding: 10,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.rose,
+    borderColor: "rgba(255, 255, 255, 0.05)",
   },
-  removeText: { color: colors.rose, fontWeight: "600" },
+  optionText: { fontSize: 13, color: colors.textMuted },
+  removeButton: {
+    alignSelf: "flex-end",
+    paddingVertical: 5,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(168, 132, 98, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+  },
+  removeText: { color: colors.caramel, fontWeight: "600", fontSize: 12 },
 });

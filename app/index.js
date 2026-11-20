@@ -1,4 +1,4 @@
-﻿import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -59,40 +59,43 @@ export default function Login() {
 
   return (
     <View style={styles.container}>
-      <Image source={require("../assets/images/logo.png")} style={styles.logo} />
-      <Text style={styles.title}>LocalCup1</Text>
+      <View style={styles.glassCard}>
+        <Image source={require("../assets/images/logo.png")} style={styles.logo} />
+        <Text style={styles.title}>LocalCup1</Text>
+        <Text style={styles.subtitle}>Luxury Artisanal Coffee</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor={colors.dustyPink}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor={colors.dustyPink}
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+        <TextInput
+          style={styles.input}
+          placeholder="Email (user@localcup.com)"
+          placeholderTextColor={colors.textMuted}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Password (123456)"
+          placeholderTextColor={colors.textMuted}
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
 
-      {error !== "" && <Text style={styles.error}>{error}</Text>}
+        {error !== "" && <Text style={styles.error}>{error}</Text>}
 
-      <Pressable
-        style={styles.button}
-        onPress={handleLogin}
-        disabled={checkingSession || signingIn}
-      >
-        {checkingSession || signingIn ? (
-          <ActivityIndicator color={colors.white} />
-        ) : (
-          <Text style={styles.buttonText}>Login</Text>
-        )}
-      </Pressable>
+        <Pressable
+          style={styles.button}
+          onPress={handleLogin}
+          disabled={checkingSession || signingIn}
+        >
+          {checkingSession || signingIn ? (
+            <ActivityIndicator color={colors.white} />
+          ) : (
+            <Text style={styles.buttonText}>Sign In</Text>
+          )}
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -102,32 +105,56 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 28,
-    gap: 14,
+    padding: 24,
     backgroundColor: colors.cream,
   },
-  logo: { width: 90, height: 90 },
-  title: { fontSize: 32, fontWeight: "bold", color: colors.darkPink, marginBottom: 10 },
+  glassCard: {
+    alignSelf: "stretch",
+    alignItems: "center",
+    backgroundColor: colors.glassCard,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    paddingVertical: 36,
+    paddingHorizontal: 22,
+    gap: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  logo: { width: 80, height: 80 },
+  title: { fontSize: 30, fontWeight: "bold", color: colors.white, letterSpacing: 0.3 },
+  subtitle: { fontSize: 14, color: colors.textSecondary, marginBottom: 6 },
   input: {
     alignSelf: "stretch",
-    backgroundColor: colors.white,
+    backgroundColor: colors.glassInput,
     borderWidth: 1,
-    borderColor: colors.beige,
-    borderRadius: 14,
+    borderColor: colors.glassBorder,
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: colors.white,
   },
-  error: { color: colors.rose, fontWeight: "600" },
+  error: { color: "#E74C3C", fontWeight: "600", fontSize: 13 },
   button: {
     alignSelf: "stretch",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.darkPink,
-    minHeight: 48,
+    backgroundColor: colors.ctaButton,
+    minHeight: 52,
     paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.ctaBorder,
+    marginTop: 8,
+    shadowColor: colors.ctaButton,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  buttonText: { color: colors.white, fontSize: 16, fontWeight: "bold" },
+  buttonText: { color: colors.white, fontSize: 16, fontWeight: "bold", letterSpacing: 0.3 },
 });

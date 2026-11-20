@@ -1,4 +1,4 @@
-﻿import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { ClipboardList, LogOut } from "lucide-react-native";
 import { useEffect, useState } from "react";
@@ -14,7 +14,6 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [favorites, setFavorites] = useState([]);
 
-  // Load saved favorites when the screen opens
   useEffect(() => {
     let active = true;
 
@@ -35,7 +34,6 @@ export default function Home() {
     };
   }, []);
 
-  // Add or remove a cafe ID, then save the list locally
   const toggleFavorite = async (id) => {
     const updated = favorites.includes(id)
       ? favorites.filter((fav) => fav !== id)
@@ -49,7 +47,6 @@ export default function Home() {
     }
   };
 
-  // Remove the login value and go back to the Login screen
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem("isLoggedIn");
@@ -60,7 +57,6 @@ export default function Home() {
     }
   };
 
-  // Simple search: keep cafes whose name contains the typed text
   const filteredCafes = cafes.filter((cafe) =>
     cafe.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -73,18 +69,17 @@ export default function Home() {
           <Image source={require("../assets/images/logo.png")} style={styles.logo} />
           <Text style={styles.title}>LocalCup1</Text>
         </View>
-        <Pressable onPress={handleLogout} style={styles.spacer}>
-          <LogOut size={22} color={colors.darkPink} />
+        <Pressable onPress={handleLogout} style={styles.logoutButton}>
+          <LogOut size={16} color={colors.textSecondary} />
         </Pressable>
       </View>
 
       <SearchBar value={search} onChangeText={setSearch} />
 
-      {/* Cafe's title on the left, Order History button on the right */}
       <View style={styles.sectionRow}>
-        <Text style={styles.sectionTitle}>Cafes</Text>
+        <Text style={styles.sectionTitle}>Featured Cafes</Text>
         <Pressable style={styles.historyButton} onPress={() => router.push("/order-history")}>
-          <ClipboardList size={18} color={colors.darkPink} />
+          <ClipboardList size={15} color={colors.caramel} />
           <Text style={styles.historyText}>Order History</Text>
         </Pressable>
       </View>
@@ -93,6 +88,7 @@ export default function Home() {
         data={filteredCafes}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
         ListEmptyComponent={<Text style={styles.empty}>No cafes found.</Text>}
         renderItem={({ item }) => (
           <CafeCard
@@ -108,24 +104,35 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.cream, paddingHorizontal: 18, paddingTop: 50 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
-  spacer: { width: 30, alignItems: "flex-end" },
-  titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
+  spacer: { width: 38 },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   logo: { width: 36, height: 36 },
-  title: { fontSize: 26, fontWeight: "bold", color: colors.darkPink },
-  sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 20, marginBottom: 12 },
-  sectionTitle: { fontSize: 20, fontWeight: "bold", color: colors.text },
+  title: { fontSize: 24, fontWeight: "bold", color: colors.white, letterSpacing: 0.3 },
+  logoutButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.glassPill,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 22, marginBottom: 14 },
+  sectionTitle: { fontSize: 20, fontWeight: "bold", color: colors.white, letterSpacing: 0.2 },
   historyButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: colors.white,
+    backgroundColor: colors.glassPill,
     borderWidth: 1,
-    borderColor: colors.beige,
-    borderRadius: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    borderColor: colors.glassBorder,
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
   },
-  historyText: { color: colors.darkPink, fontWeight: "600" },
-  empty: { textAlign: "center", color: colors.rose, fontSize: 16, marginTop: 30 },
+  historyText: { color: colors.caramel, fontWeight: "600", fontSize: 13 },
+  listContent: { paddingBottom: 30 },
+  empty: { textAlign: "center", color: colors.textMuted, fontSize: 16, marginTop: 40 },
 });

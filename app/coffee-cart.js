@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import CartItem from "../components/CartItem";
 import AnimatedHeader from "../components/AnimatedHeader";
 import { colors } from "../constants/colors";
@@ -25,7 +24,6 @@ export default function CoffeeCart() {
   const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
 
-  // Load the cart from AsyncStorage every time this page opens
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -52,7 +50,6 @@ export default function CoffeeCart() {
     }, [])
   );
 
-  // Remove one item, then save the new list and update the screen
   const handleRemove = async (cartId) => {
     const updated = cart.filter((item) => item.cartId !== cartId);
     setActionError("");
@@ -65,13 +62,11 @@ export default function CoffeeCart() {
     }
   };
 
-  // Add up all prices (works even if a price is saved as text)
   const total = cart.reduce(
     (sum, item) => sum + Number(String(item.price).replace(/[^0-9.]/g, "")),
     0
   );
 
-  // Check Out: save the order, clear the cart, open Order Confirmation
   const handleCheckout = async () => {
     if (cart.length === 0 || isCheckingOut) {
       if (cart.length === 0) Alert.alert("Your cart is empty.");
@@ -99,17 +94,16 @@ export default function CoffeeCart() {
             date: new Date().toLocaleString(),
           };
 
+      const updatedOrders = isRetrying ? orders : [newOrder, ...orders];
       await writeStoredJson("currentOrder", newOrder);
-      if (!orders.some((order) => order.orderNumber === newOrder.orderNumber)) {
-        orders.push(newOrder);
-        await writeStoredJson("orderHistory", orders);
-      }
-      await AsyncStorage.removeItem("cart");
+      await writeStoredJson("orderHistory", updatedOrders);
+      await writeStoredJson("cart", []);
+
       setCart([]);
-      router.replace("/order-confirmation");
+      router.push("/order-confirmation");
     } catch (error) {
-      console.error("Failed to complete checkout.", error);
-      setActionError("Unable to complete checkout. Your cart has been kept; please try again.");
+      console.error("Failed to check out.", error);
+      setActionError("Unable to complete checkout. Please try again.");
     } finally {
       setIsCheckingOut(false);
     }
@@ -128,48 +122,49 @@ export default function CoffeeCart() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        <Pressable onPress={() => router.dismissTo("/menu")} style={styles.backButton}>
-          <ArrowLeft size={26} color={colors.darkPink} />
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft size={18} color={colors.white} />
         </Pressable>
 
-        <Text style={styles.pageTitle}>Coffee Cart</Text>
-
-        {actionError !== "" && <Text style={styles.error}>{actionError}</Text>}
+        <Text style={styles.pageTitle}>Your Cart</Text>
 
         {isLoading ? (
-          <ActivityIndicator color={colors.darkPink} style={styles.loading} />
+          <ActivityIndicator color={colors.caramel} style={styles.loading} />
         ) : loadError !== "" ? (
           <Text style={styles.error}>{loadError}</Text>
         ) : cart.length === 0 ? (
-          // Empty cart: no Check Out button is shown
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>Your coffee cart is empty.</Text>
-            <Pressable style={styles.menuButton} onPress={() => router.dismissTo("/menu")}>
-              <Text style={styles.menuButtonText}>Back to Menu</Text>
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>Your cart is empty.</Text>
+            <Pressable style={styles.menuButton} onPress={() => router.back()}>
+              <Text style={styles.menuButtonText}>Explore Menu</Text>
             </Pressable>
           </View>
         ) : (
           <>
+            {actionError !== "" && <Text style={styles.error}>{actionError}</Text>}
+
             {cart.map((item) => (
               <CartItem key={item.cartId} item={item} onRemove={handleRemove} />
             ))}
 
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>{"\u20B1"}{total}</Text>
-            </View>
+            <View style={styles.summaryCard}>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Total</Text>
+                <Text style={styles.totalValue}>{"\u20B1"}{total}</Text>
+              </View>
 
-            <Pressable
-              style={styles.checkoutButton}
-              onPress={handleCheckout}
-              disabled={isCheckingOut}
-            >
-              {isCheckingOut ? (
-                <ActivityIndicator color={colors.white} />
-              ) : (
-                <Text style={styles.checkoutText}>Check Out</Text>
-              )}
-            </Pressable>
+              <Pressable
+                style={styles.checkoutButton}
+                onPress={handleCheckout}
+                disabled={isCheckingOut}
+              >
+                {isCheckingOut ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Text style={styles.checkoutText}>Proceed to Checkout</Text>
+                )}
+              </Pressable>
+            </View>
           </>
         )}
       </Animated.ScrollView>
@@ -180,25 +175,74 @@ export default function CoffeeCart() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.cream, paddingTop: 40 },
   content: { padding: 18, paddingBottom: 60 },
-  backButton: { alignSelf: "flex-start", paddingVertical: 4, marginBottom: 8 },
-  pageTitle: { fontSize: 26, fontWeight: "bold", color: colors.text, marginBottom: 16 },
-  emptyBox: { alignItems: "center", gap: 16, marginTop: 40 },
-  emptyText: { fontSize: 17, color: colors.rose },
-  menuButton: { backgroundColor: colors.darkPink, paddingVertical: 12, paddingHorizontal: 28, borderRadius: 14 },
-  menuButtonText: { color: colors.white, fontWeight: "bold", fontSize: 16 },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.glassPill,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  pageTitle: { fontSize: 26, fontWeight: "bold", color: colors.white, marginBottom: 18, letterSpacing: 0.2 },
+  emptyCard: {
+    backgroundColor: colors.glassCard,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    padding: 32,
+    alignItems: "center",
+    gap: 16,
+    marginTop: 30,
+  },
+  emptyText: { fontSize: 16, color: colors.textSecondary },
+  menuButton: {
+    backgroundColor: colors.ctaButton,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.ctaBorder,
+  },
+  menuButtonText: { color: colors.white, fontWeight: "bold", fontSize: 14 },
+  summaryCard: {
+    backgroundColor: colors.glassCard,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    padding: 20,
+    marginTop: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 4,
+  },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: colors.softPink,
-    paddingTop: 16,
-    marginTop: 6,
+    marginBottom: 16,
   },
-  totalLabel: { fontSize: 20, fontWeight: "bold", color: colors.text },
-  totalValue: { fontSize: 20, fontWeight: "bold", color: colors.darkPink },
-  checkoutButton: { alignItems: "center", backgroundColor: colors.darkPink, paddingVertical: 16, borderRadius: 14, marginTop: 20 },
-  checkoutText: { color: colors.white, fontSize: 17, fontWeight: "bold" },
+  totalLabel: { fontSize: 18, fontWeight: "bold", color: colors.white },
+  totalValue: { fontSize: 22, fontWeight: "bold", color: colors.caramel },
+  checkoutButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.ctaButton,
+    paddingVertical: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.ctaBorder,
+    shadowColor: colors.ctaButton,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  checkoutText: { color: colors.white, fontSize: 16, fontWeight: "bold", letterSpacing: 0.3 },
   loading: { marginTop: 40 },
-  error: { color: colors.rose, textAlign: "center", marginTop: 16 },
+  error: { color: "#E74C3C", textAlign: "center", marginTop: 16 },
 });

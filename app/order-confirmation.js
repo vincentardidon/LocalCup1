@@ -36,7 +36,7 @@ export default function OrderConfirmation() {
           <Pressable style={styles.primaryButton} onPress={() => router.replace("/order-status")}>
             <Text style={styles.primaryText}>Track Order Status</Text>
           </Pressable>
-          <Pressable style={styles.secondaryButton} onPress={() => router.dismissTo("/home")}>
+          <Pressable style={styles.secondaryButton} onPress={() => router.replace("/home")}>
             <Text style={styles.secondaryText}>Back to Home</Text>
           </Pressable>
         </View>
@@ -46,7 +46,7 @@ export default function OrderConfirmation() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.cream, paddingTop: 40 },
+  container: { flex: 1, backgroundColor: colors.espresso, paddingTop: 40 },
   content: { flex: 1, alignItems: "center", justifyContent: "center", padding: 22 },
   glassCard: {
     alignSelf: "stretch",

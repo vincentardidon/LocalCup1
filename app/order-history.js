@@ -21,7 +21,6 @@ export default function OrderHistory() {
   const [scrollY] = useState(() => new Animated.Value(0));
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Focus Lifecycle: Reload order history every time screen is focused
   useFocusEffect(
     useCallback(() => {
       loadOrders();
@@ -33,6 +32,14 @@ export default function OrderHistory() {
     await loadOrders();
     setIsRefreshing(false);
   }, [loadOrders]);
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/home");
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -55,7 +62,7 @@ export default function OrderHistory() {
           />
         }
       >
-        <Pressable onPress={() => router.dismissTo("/home")} style={styles.backButton}>
+        <Pressable onPress={handleBack} style={styles.backButton}>
           <ArrowLeft size={18} color={colors.white} />
         </Pressable>
 
@@ -66,7 +73,7 @@ export default function OrderHistory() {
         ) : orderHistory.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyText}>No previous orders yet.</Text>
-            <Pressable style={styles.homeButton} onPress={() => router.dismissTo("/home")}>
+            <Pressable style={styles.homeButton} onPress={() => router.replace("/home")}>
               <Text style={styles.homeButtonText}>Explore Cafes</Text>
             </Pressable>
           </View>
@@ -96,7 +103,7 @@ export default function OrderHistory() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.cream, paddingTop: 40 },
+  container: { flex: 1, backgroundColor: colors.espresso, paddingTop: 40 },
   content: { padding: 18, paddingBottom: 60 },
   backButton: {
     width: 38,

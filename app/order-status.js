@@ -29,7 +29,6 @@ export default function OrderStatus() {
   const [scrollY] = useState(() => new Animated.Value(0));
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Lifecycle: Polling timer to update order status every 5 seconds
   useEffect(() => {
     let isMounted = true;
 
@@ -45,7 +44,6 @@ export default function OrderStatus() {
     };
   }, [refreshOrderStatus]);
 
-  // AppState Lifecycle: Immediately sync order status when app returns to foreground
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       if (nextAppState === "active") {
@@ -63,6 +61,14 @@ export default function OrderStatus() {
     await refreshOrderStatus();
     setIsRefreshing(false);
   }, [refreshOrderStatus]);
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/home");
+    }
+  };
 
   const currentIndex = currentOrder ? steps.indexOf(currentOrder.status) : -1;
   const isReady = currentOrder?.status === "Ready for Pick-up";
@@ -88,7 +94,7 @@ export default function OrderStatus() {
           />
         }
       >
-        <Pressable onPress={() => router.dismissTo("/home")} style={styles.backButton}>
+        <Pressable onPress={handleBack} style={styles.backButton}>
           <ArrowLeft size={18} color={colors.white} />
         </Pressable>
 
@@ -99,7 +105,7 @@ export default function OrderStatus() {
         ) : !currentOrder ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyText}>No active order found.</Text>
-            <Pressable style={styles.primaryButton} onPress={() => router.dismissTo("/home")}>
+            <Pressable style={styles.primaryButton} onPress={() => router.replace("/home")}>
               <Text style={styles.primaryText}>Back to Home</Text>
             </Pressable>
           </View>
@@ -134,7 +140,7 @@ export default function OrderStatus() {
               <Text style={styles.waitText}>The cafe is handcrafting your order.</Text>
             )}
 
-            <Pressable style={styles.homeButton} onPress={() => router.dismissTo("/home")}>
+            <Pressable style={styles.homeButton} onPress={() => router.replace("/home")}>
               <Text style={styles.homeButtonText}>Back to Home</Text>
             </Pressable>
           </View>
@@ -145,7 +151,7 @@ export default function OrderStatus() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.cream, paddingTop: 40 },
+  container: { flex: 1, backgroundColor: colors.espresso, paddingTop: 40 },
   content: { padding: 18, paddingBottom: 60 },
   backButton: {
     width: 38,

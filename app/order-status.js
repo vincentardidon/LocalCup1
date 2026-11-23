@@ -1,17 +1,19 @@
-import { useCallback, useState } from "react";
+import { useRouter } from "expo-router";
+import { ArrowLeft, Check } from "lucide-react-native";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  View,
-  Text,
-  Pressable,
   Animated,
+  AppState,
+  Pressable,
+  RefreshControl,
   StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import { useRouter, useFocusEffect } from "expo-router";
-import { ArrowLeft, Check } from "lucide-react-native";
 import AnimatedHeader from "../components/AnimatedHeader";
 import { colors } from "../constants/colors";
-import { readStoredJson } from "../utils/storage";
+import { useOrders } from "../context/OrderContext";
 
 const steps = [
   "Order Received",
@@ -22,38 +24,48 @@ const steps = [
 
 export default function OrderStatus() {
   const router = useRouter();
+  const { currentOrder, refreshOrderStatus, isLoadingOrders } = useOrders();
+
   const [scrollY] = useState(() => new Animated.Value(0));
-  const [order, setOrder] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
+  // Lifecycle: Polling timer to update order status every 5 seconds
+  useEffect(() => {
+    let isMounted = true;
 
-      const loadStatus = async () => {
-        setIsLoading(true);
-        setLoadError("");
-        try {
-          const current = await readStoredJson("currentOrder", null);
-          if (active) setOrder(current);
-        } catch (error) {
-          console.error("Failed to load the active order status.", error);
-          if (active) setLoadError("Unable to load order status. Please try again.");
-        } finally {
-          if (active) setIsLoading(false);
-        }
-      };
+    const interval = setInterval(async () => {
+      if (isMounted) {
+        await refreshOrderStatus();
+      }
+    }, 5000);
 
-      loadStatus();
-      return () => {
-        active = false;
-      };
-    }, [])
-  );
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [refreshOrderStatus]);
 
-  const currentIndex = order ? steps.indexOf(order.status) : -1;
-  const isReady = order?.status === "Ready for Pick-up";
+  // AppState Lifecycle: Immediately sync order status when app returns to foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        refreshOrderStatus();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [refreshOrderStatus]);
+
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refreshOrderStatus();
+    setIsRefreshing(false);
+  }, [refreshOrderStatus]);
+
+  const currentIndex = currentOrder ? steps.indexOf(currentOrder.status) : -1;
+  const isReady = currentOrder?.status === "Ready for Pick-up";
 
   return (
     <View style={styles.container}>
@@ -67,6 +79,14 @@ export default function OrderStatus() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.caramel}
+            colors={[colors.caramel]}
+          />
+        }
       >
         <Pressable onPress={() => router.dismissTo("/home")} style={styles.backButton}>
           <ArrowLeft size={18} color={colors.white} />
@@ -74,11 +94,9 @@ export default function OrderStatus() {
 
         <Text style={styles.pageTitle}>Order Status</Text>
 
-        {isLoading ? (
+        {isLoadingOrders ? (
           <ActivityIndicator color={colors.caramel} style={styles.loading} />
-        ) : loadError !== "" ? (
-          <Text style={styles.error}>{loadError}</Text>
-        ) : !order ? (
+        ) : !currentOrder ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyText}>No active order found.</Text>
             <Pressable style={styles.primaryButton} onPress={() => router.dismissTo("/home")}>
@@ -89,7 +107,7 @@ export default function OrderStatus() {
           <View style={styles.glassCard}>
             <View style={styles.orderBadge}>
               <Text style={styles.orderLabel}>Order Identifier</Text>
-              <Text style={styles.orderNumber}>#{order.orderNumber}</Text>
+              <Text style={styles.orderNumber}>#{currentOrder.orderNumber}</Text>
             </View>
 
             <View style={styles.stepList}>
@@ -227,5 +245,4 @@ const styles = StyleSheet.create({
   },
   primaryText: { color: colors.white, fontWeight: "bold", fontSize: 14 },
   loading: { marginTop: 40 },
-  error: { textAlign: "center", color: "#E74C3C", marginTop: 20 },
 });

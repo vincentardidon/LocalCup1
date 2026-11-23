@@ -1,50 +1,38 @@
+import { useFocusEffect, useRouter } from "expo-router";
+import { ArrowLeft } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  View,
-  Text,
-  Pressable,
   Animated,
+  Pressable,
+  RefreshControl,
   StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import { useRouter, useFocusEffect } from "expo-router";
-import { ArrowLeft } from "lucide-react-native";
 import AnimatedHeader from "../components/AnimatedHeader";
 import { colors } from "../constants/colors";
-import { readStoredJson } from "../utils/storage";
+import { useOrders } from "../context/OrderContext";
 
 export default function OrderHistory() {
   const router = useRouter();
-  const [scrollY] = useState(() => new Animated.Value(0));
-  const [orders, setOrders] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
+  const { orderHistory, loadOrders, isLoadingOrders } = useOrders();
 
+  const [scrollY] = useState(() => new Animated.Value(0));
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Focus Lifecycle: Reload order history every time screen is focused
   useFocusEffect(
     useCallback(() => {
-      let active = true;
-
-      const loadHistory = async () => {
-        setIsLoading(true);
-        setLoadError("");
-        try {
-          const savedOrders = await readStoredJson("orderHistory", []);
-          if (!Array.isArray(savedOrders)) throw new Error("Saved order history is not a list.");
-          if (active) setOrders(savedOrders);
-        } catch (error) {
-          console.error("Failed to load order history.", error);
-          if (active) setLoadError("Unable to load order history. Please try again.");
-        } finally {
-          if (active) setIsLoading(false);
-        }
-      };
-
-      loadHistory();
-      return () => {
-        active = false;
-      };
-    }, [])
+      loadOrders();
+    }, [loadOrders])
   );
+
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await loadOrders();
+    setIsRefreshing(false);
+  }, [loadOrders]);
 
   return (
     <View style={styles.container}>
@@ -58,6 +46,14 @@ export default function OrderHistory() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.caramel}
+            colors={[colors.caramel]}
+          />
+        }
       >
         <Pressable onPress={() => router.dismissTo("/home")} style={styles.backButton}>
           <ArrowLeft size={18} color={colors.white} />
@@ -65,11 +61,9 @@ export default function OrderHistory() {
 
         <Text style={styles.pageTitle}>Order History</Text>
 
-        {isLoading ? (
+        {isLoadingOrders ? (
           <ActivityIndicator color={colors.caramel} style={styles.loading} />
-        ) : loadError !== "" ? (
-          <Text style={styles.error}>{loadError}</Text>
-        ) : orders.length === 0 ? (
+        ) : orderHistory.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyText}>No previous orders yet.</Text>
             <Pressable style={styles.homeButton} onPress={() => router.dismissTo("/home")}>
@@ -77,7 +71,7 @@ export default function OrderHistory() {
             </Pressable>
           </View>
         ) : (
-          [...orders].reverse().map((order) => (
+          orderHistory.map((order) => (
             <View key={order.orderNumber} style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.orderNumber}>#{order.orderNumber}</Text>
@@ -165,5 +159,4 @@ const styles = StyleSheet.create({
   },
   homeButtonText: { color: colors.white, fontWeight: "bold", fontSize: 14 },
   loading: { marginTop: 40 },
-  error: { textAlign: "center", color: "#E74C3C", marginTop: 20 },
 });

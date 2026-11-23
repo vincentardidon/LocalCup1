@@ -1,61 +1,65 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { colors } from "../constants/colors";
-
-const MOCK_EMAIL = "user@localcup.com";
-const MOCK_PASSWORD = "123456";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const router = useRouter();
+  const { isLoggedIn, isLoadingSession, login } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [checkingSession, setCheckingSession] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
 
+  // Lifecycle: Redirect immediately if user is already authenticated
   useEffect(() => {
-    let active = true;
-
-    const checkSession = async () => {
-      try {
-        const value = await AsyncStorage.getItem("isLoggedIn");
-        if (active && value === "true") router.replace("/home");
-      } catch (loadError) {
-        console.error("Failed to check the saved login.", loadError);
-        if (active) setError("Could not check your saved login. Please try again.");
-      } finally {
-        if (active) setCheckingSession(false);
-      }
-    };
-
-    checkSession();
-    return () => {
-      active = false;
-    };
-  }, [router]);
+    if (!isLoadingSession && isLoggedIn) {
+      router.replace("/home");
+    }
+  }, [isLoadingSession, isLoggedIn, router]);
 
   const handleLogin = async () => {
-    if (checkingSession || signingIn) return;
+    if (isLoadingSession || signingIn) return;
     setError("");
 
-    if (email.trim().toLowerCase() !== MOCK_EMAIL || password !== MOCK_PASSWORD) {
-      setError("Invalid email or password.");
+    if (!email.trim() || !password) {
+      setError("Please enter both email and password.");
       return;
     }
 
     setSigningIn(true);
     try {
-      await AsyncStorage.setItem("isLoggedIn", "true");
-      router.replace("/home");
+      const success = await login(email, password);
+      if (success) {
+        router.replace("/home");
+      } else {
+        setError("Invalid email or password. Use user@localcup.com / 123456");
+      }
     } catch (loginError) {
-      console.error("Failed to save the login.", loginError);
-      setError("Could not log in. Please try again.");
+      console.error("[Login] Exception during login:", loginError);
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setSigningIn(false);
     }
   };
+
+  if (isLoadingSession) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.caramel} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -71,7 +75,10 @@ export default function Login() {
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(val) => {
+            setEmail(val);
+            if (error) setError("");
+          }}
         />
         <TextInput
           style={styles.input}
@@ -79,7 +86,10 @@ export default function Login() {
           placeholderTextColor={colors.textMuted}
           secureTextEntry
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(val) => {
+            setPassword(val);
+            if (error) setError("");
+          }}
         />
 
         {error !== "" && <Text style={styles.error}>{error}</Text>}
@@ -87,9 +97,9 @@ export default function Login() {
         <Pressable
           style={styles.button}
           onPress={handleLogin}
-          disabled={checkingSession || signingIn}
+          disabled={signingIn}
         >
-          {checkingSession || signingIn ? (
+          {signingIn ? (
             <ActivityIndicator color={colors.white} />
           ) : (
             <Text style={styles.buttonText}>Sign In</Text>
@@ -106,6 +116,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
+    backgroundColor: colors.cream,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: colors.cream,
   },
   glassCard: {
@@ -138,7 +154,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.white,
   },
-  error: { color: "#E74C3C", fontWeight: "600", fontSize: 13 },
+  error: { color: "#E74C3C", fontWeight: "600", fontSize: 13, textAlign: "center" },
   button: {
     alignSelf: "stretch",
     alignItems: "center",

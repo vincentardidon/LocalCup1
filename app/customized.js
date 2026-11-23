@@ -1,8 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Animated,
   Image,
@@ -14,6 +13,7 @@ import {
 } from "react-native";
 import CustomizationOption from "../components/CustomizationOption";
 import { colors } from "../constants/colors";
+import { useCart } from "../context/CartContext";
 import {
   coffeeBased,
   meals,
@@ -21,7 +21,6 @@ import {
   pastries,
   soda,
 } from "../data/products";
-import { readStoredJson, writeStoredJson } from "../utils/storage";
 
 const allProducts = [
   ...coffeeBased,
@@ -30,6 +29,7 @@ const allProducts = [
   ...pastries,
   ...meals,
 ];
+
 const sizes = ["Small", "Medium", "Large", "Extra Large"];
 const sugarLevels = [
   "No Sugar (0%)",
@@ -42,19 +42,10 @@ const customOptions = {
   "Coffee Based": [
     { title: "Size", choices: sizes, defaultChoice: "Medium" },
     { title: "Coffee Type", choices: ["Hot", "Cold"], defaultChoice: "Hot" },
-    {
-      title: "Sugar Level",
-      choices: sugarLevels,
-      defaultChoice: "Regular Sweet (100%)",
-    },
+    { title: "Sugar Level", choices: sugarLevels, defaultChoice: "Regular Sweet (100%)" },
     {
       title: "Coffee Level",
-      choices: [
-        "Single Shot / Regular",
-        "Double Shot / Extra Strong",
-        "Half Caf",
-        "Decaf",
-      ],
+      choices: ["Single Shot / Regular", "Double Shot / Extra Strong", "Half Caf", "Decaf"],
       defaultChoice: "Single Shot / Regular",
     },
     {
@@ -66,79 +57,54 @@ const customOptions = {
   "Non Coffee Based": [
     { title: "Size", choices: sizes, defaultChoice: "Medium" },
     { title: "Temperature", choices: ["Hot", "Cold"], defaultChoice: "Hot" },
-    {
-      title: "Sweetness",
-      choices: sugarLevels,
-      defaultChoice: "Regular Sweet (100%)",
-    },
-    {
-      title: "Milk Option",
-      choices: ["No Milk", "Regular Milk", "Extra Milk"],
-      defaultChoice: "Regular Milk",
-    },
+    { title: "Sweetness", choices: sugarLevels, defaultChoice: "Regular Sweet (100%)" },
+    { title: "Milk Option", choices: ["No Milk", "Regular Milk", "Extra Milk"], defaultChoice: "Regular Milk" },
   ],
   Soda: [
     { title: "Size", choices: sizes, defaultChoice: "Medium" },
-    {
-      title: "Ice Level",
-      choices: ["No Ice", "Less Ice", "Regular Ice", "Extra Ice"],
-      defaultChoice: "Regular Ice",
-    },
-    {
-      title: "Sweetness",
-      choices: ["Regular", "Less Sweet"],
-      defaultChoice: "Regular",
-    },
+    { title: "Ice Level", choices: ["No Ice", "Less Ice", "Regular Ice", "Extra Ice"], defaultChoice: "Regular Ice" },
+    { title: "Sweetness", choices: ["Regular", "Less Sweet"], defaultChoice: "Regular" },
   ],
   Pastries: [
-    {
-      title: "Size / Serving",
-      choices: ["Regular", "Large"],
-      defaultChoice: "Regular",
-    },
-    {
-      title: "Warming",
-      choices: ["Not Warmed", "Warmed"],
-      defaultChoice: "Not Warmed",
-    },
-    {
-      title: "Add-ons",
-      choices: ["None", "Extra Butter", "Extra Sauce"],
-      defaultChoice: "None",
-    },
+    { title: "Size / Serving", choices: ["Regular", "Large"], defaultChoice: "Regular" },
+    { title: "Warming", choices: ["Not Warmed", "Warmed"], defaultChoice: "Not Warmed" },
+    { title: "Add-ons", choices: ["None", "Extra Butter", "Extra Sauce"], defaultChoice: "None" },
   ],
   Meals: [
     { title: "Size", choices: ["Regular", "Large"], defaultChoice: "Regular" },
-    {
-      title: "Temperature",
-      choices: ["Regular", "Extra Hot"],
-      defaultChoice: "Regular",
-    },
-    {
-      title: "Add-ons",
-      choices: ["None", "Extra Cheese", "Extra Sauce", "Extra Side"],
-      defaultChoice: "None",
-    },
+    { title: "Temperature", choices: ["Regular", "Extra Hot"], defaultChoice: "Regular" },
+    { title: "Add-ons", choices: ["None", "Extra Cheese", "Extra Sauce", "Extra Side"], defaultChoice: "None" },
   ],
 };
 
 export default function Customized() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { addToCart } = useCart();
 
-  const product =
-    typeof id === "string" ? allProducts.find((p) => p.id === id) : undefined;
-  const sections = product ? customOptions[product.category] : [];
+  // Instant zero-delay product resolution
+  const product = useMemo(() => {
+    if (!id || typeof id !== "string") return null;
+    return allProducts.find((p) => p.id === id) || null;
+  }, [id]);
 
+  const sections = useMemo(() => {
+    return product ? customOptions[product.category] || [] : [];
+  }, [product]);
+
+  // Initial choices populated synchronously on first render
   const [selected, setSelected] = useState(() => {
-    const start = {};
-    sections.forEach((section) => {
-      start[section.title] = section.defaultChoice;
-    });
-    return start;
+    const initial = {};
+    if (product) {
+      const opts = customOptions[product.category] || [];
+      opts.forEach((sec) => {
+        initial[sec.title] = sec.defaultChoice;
+      });
+    }
+    return initial;
   });
+
   const [instructions, setInstructions] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
 
   const [scrollY] = useState(() => new Animated.Value(0));
   const scale = scrollY.interpolate({
@@ -165,75 +131,47 @@ export default function Customized() {
     };
   };
 
-  const handleAddToCart = async () => {
-    if (!product || isSaving) return;
+  const handleAddToCart = () => {
     const newItem = buildCartItem();
     if (!newItem) return;
 
-    setIsSaving(true);
-    try {
-      const existing = await readStoredJson("cart", []);
-      if (!Array.isArray(existing))
-        throw new Error("Saved cart is not a list.");
-      await writeStoredJson("cart", [...existing, newItem]);
-      Alert.alert("Added to Cart!", `${product.name} was added.`, [
-        { text: "View Cart", onPress: () => router.push("/coffee-cart") },
-        { text: "Keep Browsing", onPress: () => router.back() },
-      ]);
-    } catch (error) {
-      console.error("Failed to add an item to the cart.", error);
-    } finally {
-      setIsSaving(false);
-    }
+    addToCart(newItem);
+    Alert.alert("Added to Cart!", `${product.name} was added.`, [
+      { text: "View Cart", onPress: () => router.push("/coffee-cart") },
+      { text: "Keep Browsing", onPress: () => router.back() },
+    ]);
   };
 
-  const handleCheckOut = async () => {
-    if (!product || isSaving) return;
+  const handleCheckOut = () => {
     const newItem = buildCartItem();
     if (!newItem) return;
 
-    setIsSaving(true);
-    try {
-      const existing = await readStoredJson("cart", []);
-      if (!Array.isArray(existing))
-        throw new Error("Saved cart is not a list.");
-      await writeStoredJson("cart", [...existing, newItem]);
-      router.push("/coffee-cart");
-    } catch (error) {
-      console.error("Failed to save and check out.", error);
-      Alert.alert("Unable to proceed to checkout", "Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
+    addToCart(newItem);
+    router.push("/coffee-cart");
   };
 
   if (!product) {
     return (
-      <View style={styles.container}>
+      <View style={styles.loadingContainer}>
         <Text style={styles.notFound}>Product not found.</Text>
+        <Pressable style={styles.backButtonCenter} onPress={() => router.back()}>
+          <Text style={styles.backButtonCenterText}>Back to Menu</Text>
+        </Pressable>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Animated.View
-        style={[
-          styles.header,
-          { height: headerHeight, transform: [{ scale }] },
-        ]}
-      >
-        <Image
-          source={require("../assets/images/logo.png")}
-          style={styles.logo}
-        />
+      <Animated.View style={[styles.header, { height: headerHeight, transform: [{ scale }] }]}>
+        <Image source={require("../assets/images/logo.png")} style={styles.logo} />
         <Text style={styles.title}>LocalCup1</Text>
       </Animated.View>
 
       <Animated.ScrollView
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false },
+          { useNativeDriver: false }
         )}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
@@ -247,10 +185,7 @@ export default function Customized() {
           <View style={styles.productInfo}>
             <Text style={styles.productName}>{product.name}</Text>
             <Text style={styles.productCategory}>{product.category}</Text>
-            <Text style={styles.productPrice}>
-              {"\u20B1"}
-              {product.price}
-            </Text>
+            <Text style={styles.productPrice}>{"\u20B1"}{product.price}</Text>
           </View>
           <Image source={product.image} style={styles.productImage} />
         </View>
@@ -266,9 +201,7 @@ export default function Customized() {
                   key={choice}
                   label={choice}
                   selected={selected[section.title] === choice}
-                  onPress={() =>
-                    setSelected({ ...selected, [section.title]: choice })
-                  }
+                  onPress={() => setSelected((prev) => ({ ...prev, [section.title]: choice }))}
                 />
               ))}
             </View>
@@ -286,27 +219,11 @@ export default function Customized() {
         />
 
         <View style={styles.buttonRow}>
-          <Pressable
-            style={styles.cartButton}
-            onPress={handleAddToCart}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <Text style={styles.cartText}>Add to Cart</Text>
-            )}
+          <Pressable style={styles.cartButton} onPress={handleAddToCart}>
+            <Text style={styles.cartText}>Add to Cart</Text>
           </Pressable>
-          <Pressable
-            style={styles.checkoutButton}
-            onPress={handleCheckOut}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <Text style={styles.checkoutText}>Check Out</Text>
-            )}
+          <Pressable style={styles.checkoutButton} onPress={handleCheckOut}>
+            <Text style={styles.checkoutText}>Check Out</Text>
           </Pressable>
         </View>
       </Animated.ScrollView>
@@ -316,20 +233,21 @@ export default function Customized() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.cream, paddingTop: 40 },
-  notFound: {
-    textAlign: "center",
-    marginTop: 60,
-    color: colors.textSecondary,
-    fontSize: 16,
+  loadingContainer: { flex: 1, backgroundColor: colors.cream, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 },
+  notFound: { textAlign: "center", color: colors.textSecondary, fontSize: 16 },
+  backButtonCenter: {
+    backgroundColor: colors.glassPill,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    marginTop: 8,
   },
+  backButtonCenterText: { color: colors.white, fontWeight: "600", fontSize: 14 },
   header: { alignItems: "center", justifyContent: "center", gap: 4 },
   logo: { width: 48, height: 48 },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: colors.white,
-    letterSpacing: 0.3,
-  },
+  title: { fontSize: 24, fontWeight: "bold", color: colors.white, letterSpacing: 0.3 },
   content: { padding: 18, paddingBottom: 60 },
   backButton: {
     width: 38,
@@ -360,44 +278,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   productInfo: { flex: 1, gap: 4 },
-  productName: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: colors.white,
-    letterSpacing: 0.2,
-  },
-  productCategory: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: "600",
-  },
-  productPrice: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: colors.caramel,
-    marginTop: 4,
-  },
-  productImage: {
-    width: 110,
-    height: 110,
-    borderRadius: 18,
-    backgroundColor: colors.softPink,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: colors.white,
-    marginTop: 24,
-    marginBottom: 12,
-    letterSpacing: 0.2,
-  },
+  productName: { fontSize: 22, fontWeight: "bold", color: colors.white, letterSpacing: 0.2 },
+  productCategory: { fontSize: 13, color: colors.textSecondary, fontWeight: "600" },
+  productPrice: { fontSize: 20, fontWeight: "bold", color: colors.caramel, marginTop: 4 },
+  productImage: { width: 110, height: 110, borderRadius: 18, backgroundColor: colors.softPink },
+  sectionTitle: { fontSize: 18, fontWeight: "bold", color: colors.white, marginTop: 24, marginBottom: 12, letterSpacing: 0.2 },
   optionBlock: { marginBottom: 18 },
-  optionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-    marginBottom: 10,
-  },
+  optionTitle: { fontSize: 14, fontWeight: "600", color: colors.textSecondary, marginBottom: 10 },
   optionRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   input: {
     minHeight: 90,
@@ -410,12 +297,7 @@ const styles = StyleSheet.create({
     color: colors.white,
     textAlignVertical: "top",
   },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-    marginTop: 26,
-  },
+  buttonRow: { flexDirection: "row", justifyContent: "space-between", gap: 12, marginTop: 26 },
   cartButton: {
     flex: 1,
     alignItems: "center",
@@ -431,12 +313,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  cartText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: "bold",
-    letterSpacing: 0.3,
-  },
+  cartText: { color: colors.white, fontSize: 16, fontWeight: "bold", letterSpacing: 0.3 },
   checkoutButton: {
     flex: 1,
     alignItems: "center",
@@ -447,10 +324,5 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 999,
   },
-  checkoutText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: "bold",
-    letterSpacing: 0.3,
-  },
+  checkoutText: { color: colors.white, fontSize: 16, fontWeight: "bold", letterSpacing: 0.3 },
 });

@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+﻿import { useRouter } from "expo-router";
 import { ClipboardList, LogOut, ShoppingCart } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -36,31 +36,36 @@ export default function Home() {
   const abortControllerRef = useRef(null);
 
   // API Fetching & Lifecycle: Load cafes with AbortController support
-  const loadCafes = useCallback(async (searchQuery = "", showSpinner = true) => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    if (showSpinner) setIsLoading(true);
-    setError("");
-
-    try {
-      const data = await api.fetchCafes({
-        signal: abortControllerRef.current.signal,
-        query: searchQuery,
-      });
-      setCafes(data);
-    } catch (err) {
-      if (err.name !== "AbortError") {
-        console.error("[Home] Error fetching cafes:", err);
-        setError("Unable to load cafes right now. Please pull down to refresh.");
+  const loadCafes = useCallback(
+    async (searchQuery = "", showSpinner = true) => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
-    } finally {
-      if (showSpinner) setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
+      abortControllerRef.current = new AbortController();
+
+      if (showSpinner) setIsLoading(true);
+      setError("");
+
+      try {
+        const data = await api.fetchCafes({
+          signal: abortControllerRef.current.signal,
+          query: searchQuery,
+        });
+        setCafes(data);
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          console.error("[Home] Error fetching cafes:", err);
+          setError(
+            "Unable to load cafes right now. Please pull down to refresh.",
+          );
+        }
+      } finally {
+        if (showSpinner) setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [],
+  );
 
   // Lifecycle: Fetch on mount & when search text changes (with debounce)
   useEffect(() => {
@@ -131,7 +136,10 @@ export default function Home() {
         </Pressable>
 
         <View style={styles.titleRow}>
-          <Image source={require("../assets/images/logo.png")} style={styles.logo} />
+          <Image
+            source={require("../assets/images/logo.png")}
+            style={styles.logo}
+          />
           <Text style={styles.title}>LocalCup1</Text>
         </View>
 
@@ -145,7 +153,10 @@ export default function Home() {
       {/* Section Row */}
       <View style={styles.sectionRow}>
         <Text style={styles.sectionTitle}>Featured Cafes</Text>
-        <Pressable style={styles.historyButton} onPress={() => router.push("/order-history")}>
+        <Pressable
+          style={styles.historyButton}
+          onPress={() => router.push("/order-history")}
+        >
           <ClipboardList size={15} color={colors.caramel} />
           <Text style={styles.historyText}>Order History</Text>
         </Pressable>
@@ -160,7 +171,10 @@ export default function Home() {
       ) : error ? (
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <Pressable style={styles.retryButton} onPress={() => loadCafes(search, true)}>
+          <Pressable
+            style={styles.retryButton}
+            onPress={() => loadCafes(search, true)}
+          >
             <Text style={styles.retryButtonText}>Try Again</Text>
           </Pressable>
         </View>
@@ -180,7 +194,9 @@ export default function Home() {
           }
           ListEmptyComponent={
             <Text style={styles.empty}>
-              {search ? `No cafes matching "${search}".` : "No cafes available."}
+              {search
+                ? `No cafes matching "${search}".`
+                : "No cafes available."}
             </Text>
           }
           renderItem={({ item }) => (
@@ -197,8 +213,18 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.cream, paddingHorizontal: 18, paddingTop: 50 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.cream,
+    paddingHorizontal: 18,
+    paddingTop: 50,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
+  },
   headerPillButton: {
     width: 38,
     height: 38,
@@ -226,9 +252,25 @@ const styles = StyleSheet.create({
   cartBadgeText: { color: colors.white, fontSize: 10, fontWeight: "bold" },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   logo: { width: 36, height: 36 },
-  title: { fontSize: 24, fontWeight: "bold", color: colors.white, letterSpacing: 0.3 },
-  sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 22, marginBottom: 14 },
-  sectionTitle: { fontSize: 20, fontWeight: "bold", color: colors.white, letterSpacing: 0.2 },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: colors.white,
+    letterSpacing: 0.3,
+  },
+  sectionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 22,
+    marginBottom: 14,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: colors.white,
+    letterSpacing: 0.2,
+  },
   historyButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -242,7 +284,13 @@ const styles = StyleSheet.create({
   },
   historyText: { color: colors.caramel, fontWeight: "600", fontSize: 13 },
   listContent: { paddingBottom: 30 },
-  centerContainer: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 20, gap: 14 },
+  centerContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    gap: 14,
+  },
   loadingText: { color: colors.textSecondary, fontSize: 14 },
   errorText: { color: "#E74C3C", fontSize: 15, textAlign: "center" },
   retryButton: {
@@ -254,5 +302,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   retryButtonText: { color: colors.caramel, fontWeight: "600", fontSize: 14 },
-  empty: { textAlign: "center", color: colors.textMuted, fontSize: 16, marginTop: 40 },
+  empty: {
+    textAlign: "center",
+    color: colors.textMuted,
+    fontSize: 16,
+    marginTop: 40,
+  },
 });
